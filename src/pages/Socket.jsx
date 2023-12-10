@@ -4,7 +4,7 @@ function Socket() {
   const [msg, setMsg] = useState("");
   const [msgList, setMsgList] = useState([]);
   const messagesRef = useRef(null);
-  const socket = useRef(null);
+  const socket = useRef(null); 
 
   const myMessageClassList =
     "p-3 bg-white w-fit mr-3 rounded-tr-xl rounded-l-xl self-end max-w-screen-md";
