@@ -1,14 +1,17 @@
 // import Websocket from "./pages/Websocket";
 // import Socket from "./pages/Socket";
 
-import Streamwebsocket from "./pages/Streamwebsocket";
+import SocketSingleRoom from "./pages/SocketSingleRoom";
+
+// import Streamwebsocket from "./pages/StreamWebSocket";
 
 function App() {
   return (
     <>
       {/* <Websocket /> */}
       {/* <Socket /> */}
-      <Streamwebsocket />
+      {/* <StreamWebSocket /> */}
+      <SocketSingleRoom />
     </>
   );
 }

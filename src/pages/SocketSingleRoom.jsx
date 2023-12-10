@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
+import { io } from "socket.io-client";
 
-function Socket() {
+function SocketSingleRoom() {
   const [msg, setMsg] = useState("");
   const [msgList, setMsgList] = useState([]);
   const messagesRef = useRef(null);
-  const socket = useRef(null); 
+  const socket = useRef(null);
 
   const myMessageClassList =
     "p-3 bg-white w-fit mr-3 rounded-tr-xl rounded-l-xl self-end max-w-screen-md";
@@ -12,28 +13,29 @@ function Socket() {
     "p-3 bg-white w-fit ml-3 rounded-tl-xl rounded-r-xl max-w-screen-md mb-3";
 
   useEffect(() => {
-    socket.current = new WebSocket("ws://localhost:8080");
+    socket.current = new io("ws://localhost:8080");
 
     // Connection opened
-    socket.current.addEventListener("connection", (event) => {
-      socket.current.send("Connection established with server");
-      console.log(event);
+    socket.current.on("connect", () => {
+      // Listen for messages
+      socket.current.on("message", (event) => {
+        setMsgList((prev) => [...prev, { from: "you", message: event }]);
+        setTimeout(() => {
+          messagesRef.current.lastChild.scrollIntoView({
+            behavior: "smooth",
+            inline: "end",
+          });
+        }, 0);
+      });
     });
 
-    // Listen for messages
-    socket.current.addEventListener("message", (event) => {
-      setMsgList((prev) => [...prev, { from: "you", message: event.data }]);
-      setTimeout(() => {
-        messagesRef.current.lastChild.scrollIntoView({
-          behavior: "smooth",
-          inline: "end",
-        });
-      }, 0);
-    });
+    return () => {
+      socket.current.disconnect();
+    };
   }, []);
 
   function sendMessage() {
-    socket.current.send(msg);
+    socket.current.emit("message", msg);
     setMsgList((prev) => [...prev, { from: "me", message: msg }]);
     setMsg("");
     setTimeout(() => {
@@ -91,4 +93,4 @@ function Socket() {
   );
 }
 
-export default Socket;
+export default SocketSingleRoom;

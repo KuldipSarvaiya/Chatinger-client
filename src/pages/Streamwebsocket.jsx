@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import useWebSocket from "react-use-websocket";
 
-const Streamwebsocket = () => {
+const StreamWebSocket = () => {
   const [videoChunks, setVideoChunks] = useState([]);
   const videoUrl = useRef(null);
-  const { lastMessage } = useWebSocket("ws://localhost:8080");
+  const { lastMessage, getWebSocket } = useWebSocket("ws://localhost:8080");
 
   useEffect(() => {
     if (lastMessage?.data) {
@@ -17,6 +17,10 @@ const Streamwebsocket = () => {
       const videoBlob = new Blob(videoChunks, { type: "video/mp4" });
       videoUrl.current = URL.createObjectURL(videoBlob);
     }
+
+    return () => {
+      getWebSocket().close();
+    };
   }, [lastMessage, videoChunks]);
 
   return (
@@ -33,4 +37,4 @@ const Streamwebsocket = () => {
   );
 };
 
-export default Streamwebsocket;
+export default StreamWebSocket;
