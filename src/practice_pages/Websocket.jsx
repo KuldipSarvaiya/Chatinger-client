@@ -42,7 +42,7 @@ function Websocket() {
         behavior: "smooth",
         inline: "end",
       });
-      document.querySelector("#messageBox").focus()
+      document.querySelector("#messageBox").focus();
     }, 0);
   }
 
@@ -70,7 +70,7 @@ function Websocket() {
       </div>
 
       {/* send Messages */}
-      <div className="absolute bottom-0 w-full left-0 gap-5 my-4 px-10 flex justify-center items-center">
+      <div className="absolute bottom-0 w-full left-0 gap-5 my-4 px-10 flex justify-center items-center" accessKey="m">
         <textarea
           id="messageBox"
           className="w-5/6 rounded-sm outline-none font-mono text-xl resize-none px-1 border-b-4 border-blue-600"
