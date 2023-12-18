@@ -8,7 +8,9 @@ function useDatas() {
     isLoggedIn: false,
     auth: {
       id: "ok23ndjsaie",
-      name: "kuldip sarvaiya",
+      username:"kd_sarvaiya_",
+      display_name: "kuldip sarvaiya",
+      email:"kuldipsarvaiya94@gmail.com",
       jwt: "jwt-token",
       friendrequests: [],
     },

@@ -31,9 +31,9 @@ function ChatRoom() {
   }
 
   return (
-    <section className="h-full p-2 max-sm:p-1 w-full flex flex-col relative overflow-auto">
+    <section className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1">
       {/* friend's detail navbar */}
-      <span className="sticky py-2 top-0 left-0 rounded-lg w-full bg-red-500 px-2 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-3 uppercase flex-row flex-nowrap min-h-fit">
+      <span className="p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-3 uppercase flex-row flex-nowrap min-h-fit">
         <Avatar
           variant="circular"
           sx={{ bgcolor: "transparent", border: "2px dotted black" }}
@@ -65,14 +65,14 @@ function ChatRoom() {
 
       {/* message display */}
       <span
-        className="w-full flex flex-col overflow-auto py-14"
+        className="w-full flex flex-col overflow-y-auto overflow-x-hidden grow"
         ref={messagesRef}
       >
         {msgList.map((message, index) => {
           return (
             <Message
               key={index}
-              isMyMessage={message.from === "me"}
+              isMyMessage={(index+1)%2 === 0}
               message={message.message}
             />
           );
@@ -80,7 +80,7 @@ function ChatRoom() {
       </span>
 
       {/* send message space */}
-      <span className="absolute bottom-0 left-0 flex flex-row gap-4 w-full justify-center items-center max-md:gap-1">
+      <span className="flex flex-row gap-1 w-full justify-center items-center max-md:gap-1">
         <textarea
           id="messageBox"
           className="w-3/4 text-slate-700 max-md:w-11/12 rounded-md outline-none text-xl resize-none px-1 border-b-4 border-green-500"
