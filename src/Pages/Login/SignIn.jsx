@@ -135,7 +135,7 @@ function SignIn() {
           need a new account?{" "}
           <Link to={"/signup"}>
             <i className="text-purple-500 font-semibold">
-              <u>SignUp🫵</u>
+              <u>SignUp</u>
             </i>
           </Link>
         </span>

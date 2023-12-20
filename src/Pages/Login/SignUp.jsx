@@ -24,6 +24,7 @@ function SignUp() {
     setLoading(true);
     if (data && !detailsVerifyed) {
       // do api request here
+      // check for duplicate username/email and raise error
       setTimeout(() => {
         setDetailsVerifyed(true);
         setLoading(false);
@@ -36,7 +37,7 @@ function SignUp() {
 
   return (
     <div
-      className="flex flex-col flex-nowrap gap-2 justify-evenly py-5 items-center w-fit bg-white text-slate-700 p-6 max-sm:p-4 max-sm:w-10/12 rounded-md fixed top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2"
+      className="flex flex-col flex-nowrap gap-2 justify-evenly py-5 items-center w-fit bg-white text-slate-700 p-6 max-sm:p-4 max-md:w-7/12 max-sm:w-10/12  rounded-md fixed top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2"
       title="sign up"
     >
       <span className="text-sx font-semibold mb-5">
@@ -181,7 +182,7 @@ function SignUp() {
           already have an account?{" "}
           <Link to={"/signin"}>
             <i className="text-purple-500 font-semibold">
-              <u>SignIn🫵</u>
+              <u>SignIn</u>
             </i>
           </Link>
         </span>

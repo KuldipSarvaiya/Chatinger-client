@@ -8,24 +8,29 @@ function useDatas() {
     isLoggedIn: false,
     auth: {
       id: "ok23ndjsaie",
-      username:"kd_sarvaiya_",
+      username: "kd_sarvaiya_",
       display_name: "kuldip sarvaiya",
-      email:"kuldipsarvaiya94@gmail.com",
+      email: "kuldipsarvaiya94@gmail.com",
       jwt: "jwt-token",
-      friendrequests: [],
+      friendrequests: [
+        { id: "111", name: "Kuldip Sarvaiya", type: "personal" },
+        { id: "333", name: "Ankit Sarvaiya", type: "personal" },
+        { id: "444", name: "Rajdeep Sarvaiya", type: "group" },
+        { id: "555", name: "Dharmik Sarvaiya", type: "personal" },
+        { id: "666", name: "Vikas Sarvaiya", type: "group" },
+      ],
     },
     chatrooms: [
-      { id: "111", name: "Kuldip Sarvaiya" }, 
-      { id: "333", name: "Ankit Sarvaiya" },
-      { id: "444", name: "Rajdeep Sarvaiya" },
-      { id: "555", name: "Dharmik Sarvaiya" },
-      { id: "666", name: "Vikas Sarvaiya" },
+      { id: "111", name: "Kuldip Sarvaiya", type: "personal" },
+      { id: "333", name: "Ankit Sarvaiya", type: "personal" },
+      { id: "444", name: "Rajdeep Sarvaiya", type: "group" },
+      { id: "555", name: "Dharmik Sarvaiya", type: "personal" },
+      { id: "666", name: "Vikas Sarvaiya", type: "group" },
     ],
-    currentopenchatroom: false,
   };
 
   //function that actualy chages the state of application,
-  function updateData(state,props) {
+  function updateData(state, props) {
     switch (props.type) {
       case "signin":
         return {
@@ -39,12 +44,23 @@ function useDatas() {
           isLoggedIn: false,
           auth: {},
         };
-      case "openchatroom":
+      case "addnewchatroom":
         return {
           ...state,
-          currentopenchatroom: props.id,
+          chatrooms: [...state.chatrooms, props.new_chatroom],
         };
-      // case "closechatroom":
+      case "removefriendrequest":
+        return {
+          ...state,
+          auth: {
+            ...state.auth,
+            friendrequests: state.auth.friendrequests.filter(
+              (item) => item.id !== props.id
+            ),
+          },
+        };
+      case "logout":
+        return initialState;
       default:
         return state;
     }
@@ -53,7 +69,7 @@ function useDatas() {
   // appliaction state defination
   const [Data, Dispatch] = useReducer(updateData, initialState);
 
-  console.log(Data);
+  // console.log(Data);
 
   // creating small function so changing state of application can make easy
   // in whole application these functions are used to chage state
@@ -64,12 +80,17 @@ function useDatas() {
   const doSignOut = () => {
     Dispatch({ type: "signout" });
   };
-  const openChatRoom = (id) => {
-    Dispatch({ type: "openchatroom", id });
+  const logOut = () => { 
+    Dispatch({ type: "logout" });
   };
-
+  const addNewChatRoom = (chatroom) => {
+    Dispatch({ type: "addnewchatroom", new_chatroom: chatroom });
+  };
+  const removeFriendRequest = (id) =>{
+    Dispatch({ type: "removefriendrequest", id });
+  }
   // returning state-data and state changing functions
-  return { Data, doSignIn, doSignOut, openChatRoom };
+  return { Data, doSignIn, doSignOut, logOut, addNewChatRoom, removeFriendRequest};
 }
 
 export default useDatas;
