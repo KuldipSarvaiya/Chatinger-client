@@ -1,12 +1,15 @@
 import QuestionAnswerRounded from "@mui/icons-material/QuestionAnswerRounded";
 import { Button, CircularProgress, TextField } from "@mui/material";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import useDatas from "../../DataStore/useDatas";
 
 function SignIn() {
   const [loading, setLoading] = useState(false);
   const [detailsVerifyed, setDetailsVerifyed] = useState(false);
+  const navigate = useNavigate();
+  const { Data } = useDatas();
   const {
     // getValues,
     handleSubmit,
@@ -15,9 +18,15 @@ function SignIn() {
     formState: { errors },
   } = useForm();
 
+  useEffect(() => {
+    if (Data.isLoggedIn) {
+      navigate("/");
+    }
+  }, [Data.isLoggedIn]);
+
   function handleSubmitAndSendOtp(data) {
     console.log(data);
-    
+
     setLoading(true);
     if (data && !detailsVerifyed) {
       // do api request here
@@ -72,7 +81,7 @@ function SignIn() {
                 pattern: {
                   value: /[a-z0-9]{10,50}/,
                   message: "username does not exists",
-                }, 
+                },
               })}
             />
 
@@ -124,7 +133,12 @@ function SignIn() {
         {loading ? (
           <CircularProgress color="secondary" />
         ) : (
-          <Button variant="contained" color="secondary" type="submit" sx={{marginBottom:'15px'}} >
+          <Button
+            variant="contained"
+            color="secondary"
+            type="submit"
+            sx={{ marginBottom: "15px" }}
+          >
             SignIn
           </Button>
         )}

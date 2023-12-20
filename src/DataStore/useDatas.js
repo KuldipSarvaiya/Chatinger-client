@@ -5,7 +5,7 @@ function useDatas() {
 
   // default state of application when loaded
   const initialState = {
-    isLoggedIn: false,
+    isLoggedIn: true,
     auth: {
       id: "ok23ndjsaie",
       username: "kd_sarvaiya_",
@@ -27,6 +27,8 @@ function useDatas() {
       { id: "555", name: "Dharmik Sarvaiya", type: "personal" },
       { id: "666", name: "Vikas Sarvaiya", type: "group" },
     ],
+    opened_chatrooms: new Map(),
+    open_chatroom: new Map(),
   };
 
   //function that actualy chages the state of application,
@@ -39,11 +41,8 @@ function useDatas() {
           auth: props.auth,
         };
       case "signout":
-        return {
-          ...state,
-          isLoggedIn: false,
-          auth: {},
-        };
+        console.log("signout function has called");
+        return initialState;
       case "addnewchatroom":
         return {
           ...state,
@@ -59,8 +58,16 @@ function useDatas() {
             ),
           },
         };
-      case "logout":
-        return initialState;
+      case "openchatroom":
+        return {
+          ...state,
+          opened_chatrooms: state.opened_chatrooms.set(
+            props.room.id,
+            props.room.IO
+          ),
+          open_chatroom: new Map().set(props.room.id, props.room.IO),
+        };
+      case "closechatroom":
       default:
         return state;
     }
@@ -69,10 +76,10 @@ function useDatas() {
   // appliaction state defination
   const [Data, Dispatch] = useReducer(updateData, initialState);
 
-  // console.log(Data);
+  console.log(Data);
 
   // creating small function so changing state of application can make easy
-  // in whole application these functions are used to chage state
+  // in whole application these functions are used to change state
   // named function that it describes its usecase
   const doSignIn = (auth) => {
     Dispatch({ type: "signin", auth });
@@ -80,17 +87,25 @@ function useDatas() {
   const doSignOut = () => {
     Dispatch({ type: "signout" });
   };
-  const logOut = () => { 
-    Dispatch({ type: "logout" });
-  };
   const addNewChatRoom = (chatroom) => {
     Dispatch({ type: "addnewchatroom", new_chatroom: chatroom });
   };
-  const removeFriendRequest = (id) =>{
+  const removeFriendRequest = (id) => {
     Dispatch({ type: "removefriendrequest", id });
-  }
+  };
+  const openChatRoom = (room) => {
+    Dispatch({ type: "openchatroom", room });
+  };
   // returning state-data and state changing functions
-  return { Data, doSignIn, doSignOut, logOut, addNewChatRoom, removeFriendRequest};
+  return {
+    Data,
+    Dispatch,
+    doSignIn,
+    doSignOut,
+    addNewChatRoom,
+    removeFriendRequest,
+    openChatRoom,
+  };
 }
 
 export default useDatas;

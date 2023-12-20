@@ -2,11 +2,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import Message from "../Widgets/Message";
 import { Avatar, Button, IconButton, Modal, Paper } from "@mui/material";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 // import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
+import useDatas from "../DataStore/useDatas";
+// import sendNotification from "../Widgets/sendNotification";
 
 function ChatRoom() {
   const { roomId } = useParams();
@@ -16,10 +18,23 @@ function ChatRoom() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   // const socket = useRef(null);
   const messagesRef = useRef(null);
+  const { Data, openChatRoom } = useDatas();
 
   console.log("chatroom reloaded", roomId);
   const name = "Kuldip Sarvaiya";
   const type = "group";
+
+  useEffect(() => { 
+    // open chatroom if it is first time opened
+    if (!Data.opened_chatrooms.get(roomId))
+      openChatRoom({ id: roomId, IO: roomId*100 });
+    else{
+      console.log(Data.opened_chatrooms.get(roomId));
+    }
+
+      // send notification if this room is curently not open
+    // if (!Data.open_chatroom.get(roomId)) sendNotification(name, roomId);
+  }, [roomId]);
 
   function sendMessage() {
     // socket.current.emit("message", msg);

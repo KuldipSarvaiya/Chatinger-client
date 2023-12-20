@@ -1,12 +1,15 @@
 import QuestionAnswerRounded from "@mui/icons-material/QuestionAnswerRounded";
 import { Button, CircularProgress, TextField } from "@mui/material";
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
+import useDatas from "../../DataStore/useDatas";
 
 function SignUp() {
   const [loading, setLoading] = useState(false);
   const [detailsVerifyed, setDetailsVerifyed] = useState(false);
+  const navigate = useNavigate();
+  const { Data } = useDatas();
   const {
     // getValues,
     handleSubmit,
@@ -34,6 +37,12 @@ function SignUp() {
       console.log("verify OTP", data.otp);
     }
   }
+
+  useEffect(() => {
+    if (Data.isLoggedIn) {
+      navigate("/");
+    }
+  }, [Data.isLoggedIn]);
 
   return (
     <div
@@ -171,7 +180,12 @@ function SignUp() {
         {loading ? (
           <CircularProgress color="secondary" />
         ) : (
-          <Button variant="contained" color="secondary" type="submit" sx={{marginBottom:'15px'}}>
+          <Button
+            variant="contained"
+            color="secondary"
+            type="submit"
+            sx={{ marginBottom: "15px" }}
+          >
             Signup
           </Button>
         )}

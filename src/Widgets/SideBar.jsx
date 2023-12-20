@@ -23,7 +23,7 @@ import { useState } from "react";
 function SideBar() {
   console.log("sidebar reloaded");
   const navigate = useNavigate();
-  const { Data, removeFriendRequest, logOut } = useDatas();
+  const { Data, removeFriendRequest, doSignOut } = useDatas();
   const [showModal, setShowModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -124,7 +124,7 @@ function SideBar() {
             <IconButton
               onClick={() => {
                 if (confirm("Are You Sure? You Want To SignOut !?")) {
-                  logOut();
+                  doSignOut();
                   navigate("/signin",{replace:true});
                 }
               }}
