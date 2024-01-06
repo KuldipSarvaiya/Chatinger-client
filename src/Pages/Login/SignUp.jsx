@@ -1,15 +1,19 @@
 import QuestionAnswerRounded from "@mui/icons-material/QuestionAnswerRounded";
 import { Button, CircularProgress, TextField } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import useDatas from "../../DataStore/useDatas";
+// import useDatas from "../../DataStore/useDatas";
+import axios from "axios";
+import { Context } from "../../ContextProvider";
 
 function SignUp() {
   const [loading, setLoading] = useState(false);
   const [detailsVerifyed, setDetailsVerifyed] = useState(false);
   const navigate = useNavigate();
-  const { Data } = useDatas();
+  // const { Data, doSignIn } = useDatas();
+  const { Data, doSignIn } = useContext(Context);
+  const Temp = useRef(null);
   const {
     // getValues,
     handleSubmit,
@@ -18,23 +22,66 @@ function SignUp() {
     formState: { errors },
   } = useForm();
 
-  function handleSubmitAndSendOtp(data) {
+  async function handleSubmitAndSendOtp(data) {
     console.log(data);
+
+    // if username is not valid
     if (data.username.length < 10 || data.username.length > 50) {
       setError("username", { message: "use atleast 10 to 50 characters" });
       return;
     }
+    
+    // check for data is valid and otp sending state
     setLoading(true);
     if (data && !detailsVerifyed) {
       // do api request here
-      // check for duplicate username/email and raise error
-      setTimeout(() => {
+      const signupRes = await axios.post("/auth/signup", { ...data });
+      console.log(signupRes);
+      setLoading(false);
+
+      // if no problem faced in sigin process
+      if (!signupRes.data.error) {
+        Temp.current = { ...signupRes.data };
         setDetailsVerifyed(true);
-        setLoading(false);
-      }, 2000);
+      } else if (signupRes.data.type === "duplication") {
+        // if there any user with same username or email found then....
+        setError("email", {
+          message: "Email/Username already Exist",
+        });
+        setError("username", {
+          message: "Email/Username already Exist",
+        });
+      }
+      // if email verification otp not properly sent
+      else alert(signupRes.data.message);
     } else {
       // verify otp and set cookie and state here
-      console.log("verify OTP", data.otp);
+      if (Temp.current.otp === data.otp) {
+        console.log("verify OTP", data.otp);
+        alert("Email OTP Verified✅ : Welcome to Chatinger🗨️");
+
+        // now, set this user acc to mongodb
+        const regRes = await axios.post("/auth/register", {
+          ...data,
+          jwt: Temp.current.jwt,
+          otp: undefined,
+        });
+        setLoading(false);
+        console.log(regRes);
+
+        // if there is any error while creating account in mongodb for this user
+        if (regRes.data.error)
+          setError("otp", {
+            message: "can't register your account, please create new account",
+          });
+        //if no error then....
+        console.log(regRes.data.user);
+        doSignIn(regRes.data.user);
+        navigate("/");
+      } else {
+        console.log("wrong otp");
+        setError("otp", { message: "WRONG OTP SUBMITED !!" });
+      }
     }
   }
 
@@ -42,7 +89,7 @@ function SignUp() {
     if (Data.isLoggedIn) {
       navigate("/");
     }
-  }, [Data.isLoggedIn]);
+  }, []);
 
   return (
     <div
@@ -107,7 +154,7 @@ function SignUp() {
               {...register("username", {
                 required: "username is required to find you",
                 pattern: {
-                  value: /[a-z0-9]/,
+                  value: /[a-z0-9_-~@#^&|*.]{10,50}/,
                   message: "use small alphabets & numbers only",
                 },
                 // setValueAs: (v) => v.toLowerCase(),

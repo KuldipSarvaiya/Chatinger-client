@@ -2,50 +2,83 @@ import { useNavigate, useParams } from "react-router-dom";
 import Message from "../Widgets/Message";
 import { Avatar, Button, IconButton, Modal, Paper } from "@mui/material";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 // import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
-import useDatas from "../DataStore/useDatas";
+import { Context } from "../ContextProvider";
+// import useDatas from "../DataStore/useDatas";
 // import sendNotification from "../Widgets/sendNotification";
 
 function ChatRoom() {
   const { roomId } = useParams();
   const navigate = useNavigate();
-  const [msg, setMsg] = useState("");
   const [msgList, setMsgList] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
-  // const socket = useRef(null);
+  const msg = useRef(null);
   const messagesRef = useRef(null);
-  const { Data, openChatRoom } = useDatas();
+  // const { Data } = useDatas();
+  const { Data } = useContext(Context);
 
   console.log("chatroom reloaded", roomId);
   const name = "Kuldip Sarvaiya";
   const type = "group";
 
-  useEffect(() => { 
+  useEffect(() => {
     // open chatroom if it is first time opened
-    if (!Data.opened_chatrooms.get(roomId))
-      openChatRoom({ id: roomId, IO: roomId*100 });
-    else{
-      console.log(Data.opened_chatrooms.get(roomId));
+    // if (!Data.opened_chatrooms.get(roomId))
+    //   openChatRoom({ id: roomId, IO: roomId * 100 });
+    // else {
+    //   console.log(Data.opened_chatrooms.get(roomId));
+    // }
+
+    // setting  up message
+    if (Data.socket !== null) {
+      console.log(
+        `\n********now i'll try to join ${roomId} and then listen to message event`
+      );
+      Data.socket.emit("join_room", { room: roomId });
+      Data.socket.on("messageToClient", (message) => {
+        console.log("Message received = ", message);
+        setMsgList((prev) => {
+          return [
+            ...prev,
+            {
+              isMyMessage: false,
+              message: message,
+            },
+          ];
+        });
+      });
     }
 
-      // send notification if this room is curently not open
+    // send notification if this room is curently not open
     // if (!Data.open_chatroom.get(roomId)) sendNotification(name, roomId);
-  }, [roomId]);
+
+    return () => {
+      Data.socket.emit("leave_room", { room: roomId });
+    };
+  }, []);
 
   function sendMessage() {
-    // socket.current.emit("message", msg);
-    setMsgList((prev) => [...prev, { from: "me", message: msg }]);
-    setMsg("");
+    // sending messsage
+    Data.socket.emit("messageToServer", {
+      room: roomId,
+      message: msg.current.value,
+    });
+    //
+    setMsgList((prev) => [
+      ...prev,
+      { isMyMessage: true, message: msg.current.value },
+    ]);
     setTimeout(() => {
       messagesRef.current.lastChild.scrollIntoView({
         behavior: "smooth",
         inline: "end",
       });
-      document.querySelector("#messageBox").focus();
+      msg.current.focus();
+      msg.current.value = null;
     }, 0);
   }
 
@@ -110,7 +143,7 @@ function ChatRoom() {
             return (
               <Message
                 key={index}
-                isMyMessage={(index + 1) % 2 === 0}
+                isMyMessage={message.isMyMessage}
                 message={message.message}
               />
             );
@@ -120,13 +153,9 @@ function ChatRoom() {
         {/* send message space */}
         <span className="flex flex-row gap-1 w-full justify-center items-center max-md:gap-1">
           <textarea
-            id="messageBox"
             className="w-3/4 text-slate-700 max-md:w-11/12 rounded-md outline-none text-xl resize-none px-1 border-b-4 border-green-500"
             placeholder="Type Your Message..."
-            value={msg}
-            onChange={(e) => {
-              setMsg(e.target.value);
-            }}
+            ref={msg}
           />
           <button
             onClick={sendMessage}

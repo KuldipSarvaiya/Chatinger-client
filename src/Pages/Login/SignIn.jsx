@@ -1,20 +1,25 @@
 import QuestionAnswerRounded from "@mui/icons-material/QuestionAnswerRounded";
 import { Button, CircularProgress, TextField } from "@mui/material";
-import { useEffect, useState } from "react";
+import { memo, useContext, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import useDatas from "../../DataStore/useDatas";
+// import useDatas from "../../DataStore/useDatas";
+import axios from "axios";
+import { Context } from "../../ContextProvider";
 
 function SignIn() {
   const [loading, setLoading] = useState(false);
   const [detailsVerifyed, setDetailsVerifyed] = useState(false);
+  const OTP = useRef(null);
+  const newUser = useRef(null);
   const navigate = useNavigate();
-  const { Data } = useDatas();
+  // const { Data, doSignIn } = useDatas();
+  const { Data, doSignIn } = useContext(Context);
   const {
     // getValues,
     handleSubmit,
     register,
-    // setError,
+    setError,
     formState: { errors },
   } = useForm();
 
@@ -22,21 +27,42 @@ function SignIn() {
     if (Data.isLoggedIn) {
       navigate("/");
     }
-  }, [Data.isLoggedIn]);
+  }, []);
 
-  function handleSubmitAndSendOtp(data) {
+  async function handleSubmitAndSendOtp(data) {
     console.log(data);
 
     setLoading(true);
     if (data && !detailsVerifyed) {
       // do api request here
-      setTimeout(() => {
-        setDetailsVerifyed(true);
-        setLoading(false);
-      }, 2000);
+      const signinRes = await axios.post("/auth/signin", { ...data });
+      console.log(signinRes);
+      setLoading(false);
+      // if error happend in sending mail or credentials are invalid
+      if (signinRes.data.error) {
+        signinRes.data.type === 500
+          ? alert("500 : Internal Server Error.\nPlease Try again later")
+          : setError("password", { message: "username or password is wrong" });
+        return;
+      }
+      // if otp is sent to their email by server
+      OTP.current = signinRes.data.otp;
+      newUser.current = signinRes.data.user;
+      setDetailsVerifyed(true);
     } else {
       // verify otp and set cookie and state here
-      console.log("verify OTP", data.otp);
+      if (OTP.current === data.otp) {
+        console.log("verify OTP", data.otp);
+        alert("Email OTP Verified✅ : Welcome to Chatinger🗨️");
+        doSignIn(newUser.current);
+        navigate("/");
+        return;
+      }
+
+      // in case otp is wrong
+      console.log("wrong otp");
+      setError("otp", { message: "WRONG OTP SUBMITED !!" });
+      setLoading(false);
     }
   }
 
@@ -79,7 +105,7 @@ function SignIn() {
               {...register("username", {
                 required: "enter username to signin",
                 pattern: {
-                  value: /[a-z0-9]{10,50}/,
+                  value: /[a-z0-9_-~@#^&|*.]{10,50}/,
                   message: "username does not exists",
                 },
               })}
@@ -123,10 +149,10 @@ function SignIn() {
               )
             }
             {...register("otp", {
-              required: "OTP is Invalid",
+              required: "Plese Enter OTP",
               valueAsNumber: true,
-              min: { value: 100000, message: "OTP is Invalid" },
-              max: { value: 999999, message: "OTP is Invalid" },
+              min: { value: 100000, message: "OTP Must Contain 6 Digits" },
+              max: { value: 999999, message: "OTP Can Only Contain 6 Digits" },
             })}
           />
         )}

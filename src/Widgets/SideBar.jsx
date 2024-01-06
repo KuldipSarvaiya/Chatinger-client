@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import Friend from "./Friend";
-import useDatas from "../DataStore/useDatas";
+// import useDatas from "../DataStore/useDatas";
 import { useNavigate } from "react-router-dom";
 import {
   Badge,
@@ -18,12 +18,14 @@ import GroupAddRoundedIcon from "@mui/icons-material/GroupAddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Diversity1RoundedIcon from "@mui/icons-material/Diversity1Rounded";
-import { useState } from "react";
+import { useContext, useState } from "react";
+import { Context } from "../ContextProvider";
 
 function SideBar() {
   console.log("sidebar reloaded");
   const navigate = useNavigate();
-  const { Data, removeFriendRequest, doSignOut } = useDatas();
+  // const { Data, removeFriendRequest, doSignOut } = useDatas();
+  const { Data, removeFriendRequest, doSignOut } = useContext(Context);
   const [showModal, setShowModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
@@ -125,7 +127,7 @@ function SideBar() {
               onClick={() => {
                 if (confirm("Are You Sure? You Want To SignOut !?")) {
                   doSignOut();
-                  navigate("/signin",{replace:true});
+                  navigate("/signin", { replace: true });
                 }
               }}
             >
@@ -135,7 +137,7 @@ function SideBar() {
         </div>
 
         {/* friend's list */}
-        {Data.chatrooms.map((friend) => (
+        {Data.auth.chatrooms.map((friend) => (
           <Friend key={friend.id} id={friend.id} name={friend.name} />
         ))}
       </div>

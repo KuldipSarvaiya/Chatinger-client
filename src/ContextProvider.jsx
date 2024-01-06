@@ -1,8 +1,11 @@
+/* eslint-disable react/prop-types */
+import PropTypes from "prop-types";
+import { createContext, useReducer } from "react";
 import axios from "axios";
-import { useReducer } from "react";
 
-function useDatas() {
-  // default state of application when loaded
+export const Context = createContext();
+
+function ContextProvider({ children }) {
   const initialState = {
     isLoggedIn: false,
     auth: {
@@ -33,7 +36,7 @@ function useDatas() {
 
   //function that actualy chages the state of application,
   function updateData(prevState, props) {
-    console.warn(`\n***********trying to change state with `,props);
+    console.warn(`\n***********trying to change state with `, props);
     switch (props.type) {
       case "signin":
         return {
@@ -79,6 +82,7 @@ function useDatas() {
     }
   }
 
+  
   // application state defination
   const [Data, Dispatch] = useReducer(updateData, initialState);
 
@@ -121,17 +125,26 @@ function useDatas() {
     Dispatch({ type: "set_socket", socket });
   };
 
-  // returning state-data and state changing functions to whome invokes this custom hook
-  return {
-    Data,
-    Dispatch,
-    doSignIn,
-    doSignOut,
-    addNewChatRoom,
-    removeFriendRequest,
-    openChatRoom,
-    setSocket,
-  };
+  return (
+    <Context.Provider
+      value={{
+        Data,
+        Dispatch,
+        doSignIn,
+        doSignOut,
+        addNewChatRoom,
+        removeFriendRequest,
+        openChatRoom,
+        setSocket,
+      }}
+    >
+      {children}
+    </Context.Provider>
+  );
 }
 
-export default useDatas;
+ContextProvider.propTypes = {
+  children: PropTypes.element.isRequired,
+};
+
+export default ContextProvider;
