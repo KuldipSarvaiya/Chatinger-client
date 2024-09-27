@@ -9,25 +9,12 @@ function ContextProvider({ children }) {
   const initialState = {
     isLoggedIn: false,
     auth: {
-      id: "ok23ndjsaie",
-      username: "kd_sarvaiya_",
-      display_name: "kuldip sarvaiya",
-      email: "kuldipsarvaiya94@gmail.com",
-      jwt: "jwt-token",
-      friendrequests: [
-        { id: "111", name: "Kuldip Sarvaiya", type: "personal" },
-        { id: "333", name: "Ankit Sarvaiya", type: "personal" },
-        { id: "444", name: "Rajdeep Sarvaiya", type: "group" },
-        { id: "555", name: "Dharmik Sarvaiya", type: "personal" },
-        { id: "666", name: "Vikas Sarvaiya", type: "group" },
-      ],
-      chatrooms: [
-        { id: "111", name: "Kuldip Sarvaiya", type: "personal" },
-        { id: "333", name: "Ankit Sarvaiya", type: "personal" },
-        { id: "444", name: "Rajdeep Sarvaiya", type: "group" },
-        { id: "555", name: "Dharmik Sarvaiya", type: "personal" },
-        { id: "666", name: "Vikas Sarvaiya", type: "group" },
-      ],
+      _id: "",
+      username: "",
+      display_name: "",
+      jwt: "",
+      received_friend_requests: [],
+      chatrooms: [],
     },
     socket: null,
     opened_chatrooms: new Map(),
@@ -55,15 +42,28 @@ function ContextProvider({ children }) {
       case "addnewchatroom":
         return {
           ...prevState,
-          chatrooms: [...prevState.chatrooms, props.new_chatroom],
+          auth: {chatrooms: [...prevState.auth, ...prevState.auth.chatrooms, props.new_chatroom],}
+        };
+      case "remove_chatroom":
+        return {
+          ...prevState,
+          auth: {
+            ...prevState.auth,
+            chatrooms: prevState.auth.chatrooms.filter((room) => {
+              return props._id !== room._id;
+            }),
+            opened_chatrooms: prevState.opened_chatrooms.filter((room) => {
+              return props.chatroom._id !== room._id;
+            }),
+          },
         };
       case "removefriendrequest":
         return {
           ...prevState,
           auth: {
             ...prevState.auth,
-            friendrequests: prevState.auth.friendrequests.filter(
-              (item) => item.id !== props.id
+            received_friend_requests: prevState.auth.received_friend_requests.filter(
+              (item) => item._id !== props._id
             ),
           },
         };
@@ -76,27 +76,28 @@ function ContextProvider({ children }) {
           ),
           open_chatroom: new Map().set(props.room.id, props.room.IO),
         };
-      // case "closechatroom":
+      case "exit":
+        return initialState;
       default:
         return prevState;
     }
   }
 
-  
   // application state defination
   const [Data, Dispatch] = useReducer(updateData, initialState);
 
   console.log("Data store reloaded = ", Data);
 
-  // creating small function so changing state of application can make easy by convinent naming
+  // ? creating small function so changing state of application can make easy by convinent naming
 
   // will be used when signing in and complete creating new account
   const doSignIn = (auth) => {
     console.log("im into the doSignIn method");
+console.log(auth);
 
     // setting default auth for every request
     axios.defaults.headers.common.Authorization = `bearer ${auth.jwt}`;
-    document.cookie = auth.jwt;
+    window.localStorage.setItem("user", auth.jwt);
 
     Dispatch({ type: "signin", auth });
   };
@@ -107,6 +108,7 @@ function ContextProvider({ children }) {
     );
     // setting default auth for every request
     axios.defaults.headers.common.Authorization = "bearer default_header";
+    window.localStorage.clear();
 
     Dispatch({ type: "signout" });
   };
@@ -114,8 +116,11 @@ function ContextProvider({ children }) {
   const addNewChatRoom = (chatroom) => {
     Dispatch({ type: "addnewchatroom", new_chatroom: chatroom });
   };
-  const removeFriendRequest = (id) => {
-    Dispatch({ type: "removefriendrequest", id });
+  const removeChatRoom = (chatroom_id) => {
+    Dispatch({ type: "remove_chatroom", _id: chatroom_id });
+  };
+  const removeFriendRequest = (_id) => {
+    Dispatch({ type: "removefriendrequest", _id });
   };
   const openChatRoom = (room) => {
     Dispatch({ type: "openchatroom", room });
@@ -123,6 +128,10 @@ function ContextProvider({ children }) {
   // setting socket variable for global access
   const setSocket = (socket) => {
     Dispatch({ type: "set_socket", socket });
+  };
+
+  const setInitialState = () => {
+    Dispatch({ type: "exit" });
   };
 
   return (
@@ -133,9 +142,11 @@ function ContextProvider({ children }) {
         doSignIn,
         doSignOut,
         addNewChatRoom,
+        removeChatRoom,
         removeFriendRequest,
         openChatRoom,
         setSocket,
+        setInitialState
       }}
     >
       {children}

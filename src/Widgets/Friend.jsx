@@ -51,19 +51,21 @@ function Friend({ name, id }) {
       >
         <Avatar
           variant="circular"
-          sx={{ bgcolor: alphabetColors[name.charAt(0).toLowerCase()] }}
+          sx={{ bgcolor: alphabetColors[name?.charAt(0).toLowerCase()] }}
+          className="uppercase"
         >
-          {name.indexOf(" ") !== -1
-            ? name.split(" ")[0].charAt(0) + name.split(" ")[1].charAt(0)
-            : name.split(" ")[0].charAt(0)}
+          {name?.indexOf(" ") !== -1
+            ? name?.split(" ")[0].charAt(0) + name?.split(" ")[1].charAt(0)
+            : name?.split(" ")[0].charAt(0)}
         </Avatar>
-        <span
-          className={`capitalize text-xl font-sans font-bold ${
+        <div
+          className={`capitalize text-lg font-sans font-bold ${
             isActive && "shadow-red-400 drop-shadow-md"
-          }`}
+          } flex flex-col flex-nowrap gap-0`}
         >
-          {name}
-        </span>
+          {name?.slice(0, 19)}
+          <span className="text-xs font-normal overflow-hidden whitespace-nowrap">{"".slice(0, 28)}</span>
+        </div>
       </div>
       <center className="">
         <hr width="90%" className="h-1" />

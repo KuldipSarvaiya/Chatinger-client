@@ -11,7 +11,7 @@ function useDatas() {
       display_name: "kuldip sarvaiya",
       email: "kuldipsarvaiya94@gmail.com",
       jwt: "jwt-token",
-      friendrequests: [
+      received_friend_requests: [
         { id: "111", name: "Kuldip Sarvaiya", type: "personal" },
         { id: "333", name: "Ankit Sarvaiya", type: "personal" },
         { id: "444", name: "Rajdeep Sarvaiya", type: "group" },
@@ -59,7 +59,7 @@ function useDatas() {
           ...prevState,
           auth: {
             ...prevState.auth,
-            friendrequests: prevState.auth.friendrequests.filter(
+            received_friend_requests: prevState.auth.received_friend_requests.filter(
               (item) => item.id !== props.id
             ),
           },

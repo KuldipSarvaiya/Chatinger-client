@@ -18,56 +18,58 @@ import GroupAddRoundedIcon from "@mui/icons-material/GroupAddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Diversity1RoundedIcon from "@mui/icons-material/Diversity1Rounded";
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Context } from "../ContextProvider";
+import axios from "axios";
 
 function SideBar() {
   console.log("sidebar reloaded");
   const navigate = useNavigate();
   // const { Data, removeFriendRequest, doSignOut } = useDatas();
-  const { Data, removeFriendRequest, doSignOut } = useContext(Context);
+  const { Data, addNewChatRoom, removeFriendRequest, doSignOut } =
+    useContext(Context);
   const [showModal, setShowModal] = useState(false);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchedFriendsList, setSearchedFriendsList] = useState(undefined);
 
+  useEffect(() => {
+    const token = window.localStorage.getItem("user");
+    if (!Data.isLoggedIn && !token) navigate("/signin", { replace: true });
+  });
+
   function addNewFriend(event) {
     console.log(event.target.name);
-    setSearchedFriendsList((prev) => {
-      return prev.filter((item) => item.id !== event.target.name);
-    });
+
+    try {
+      const res = axios.post("/friend/request", {
+        requested_by: event.target.name,
+      });
+      console.log(res);
+      setSearchedFriendsList((prev) => {
+        return prev.filter((item) => item._id !== event.target.name);
+      });
+    } catch (error) {
+      console.log(error);
+    }
   }
 
-  function handleFriendSearch(event) {
+  async function handleFriendSearch(event) {
     event.preventDefault();
     const formData = new FormData(event.target);
-    console.log(formData.get("searchred_username"));
+    const search = formData.get("searchred_username");
     setIsSearching(true);
-    setTimeout(() => {
-      setSearchedFriendsList([
-        { id: "111", username: "Kuldip Sarvaiya", name: "Kuldip Sarvaiya" },
-        { id: "333", username: "Ankit Sarvaiya", name: "Ankit Sarvaiya" },
-        { id: "444", username: "Rajdeep Sarvaiya", name: "Rajdeep Sarvaiya" },
-        { id: "555", username: "Dharmik Sarvaiya", name: "Dharmik Sarvaiya" },
-        { id: "666", username: "Vikas Sarvaiya", name: "Vikas Sarvaiya" },
-        { id: "1211", username: "Kuldip Sarvaiya", name: "Kuldip Sarvaiya" },
-        { id: "3233", username: "Ankit Sarvaiya", name: "Ankit Sarvaiya" },
-        { id: "4244", username: "Rajdeep Sarvaiya", name: "Rajdeep Sarvaiya" },
-        { id: "5255", username: "Dharmik Sarvaiya", name: "Dharmik Sarvaiya" },
-        { id: "6266", username: "Vikas Sarvaiya", name: "Vikas Sarvaiya" },
-        { id: "q111", username: "Kuldip Sarvaiya", name: "Kuldip Sarvaiya" },
-        { id: "q333", username: "Ankit Sarvaiya", name: "Ankit Sarvaiya" },
-        { id: "q444", username: "Rajdeep Sarvaiya", name: "Rajdeep Sarvaiya" },
-        { id: "q555", username: "Dharmik Sarvaiya", name: "Dharmik Sarvaiya" },
-        { id: "q666", username: "Vikas Sarvaiya", name: "Vikas Sarvaiya" },
-        { id: "q1211", username: "Kuldip Sarvaiya", name: "Kuldip Sarvaiya" },
-        { id: "q3233", username: "Ankit Sarvaiya", name: "Ankit Sarvaiya" },
-        { id: "q4244", username: "Rajdeep Sarvaiya", name: "Rajdeep Sarvaiya" },
-        { id: "q5255", username: "Dharmik Sarvaiya", name: "Dharmik Sarvaiya" },
-        { id: "q6266", username: "Vikas Sarvaiya", name: "Vikas Sarvaiya" },
-      ]);
+
+    try {
+      const res = await axios.get("/friend/search_by_username/" + search);
+      console.log(res.data);
+      if (!res.data.error && res.data.users.length > 0)
+        setSearchedFriendsList(res.data.users);
+    } catch (error) {
+      console.log(error);
+    } finally {
       setIsSearching(false);
-    }, 3000);
+    }
   }
 
   function createNewGroup(event) {
@@ -81,16 +83,22 @@ function SideBar() {
     }, 3000);
   }
 
-  function cancelFriendRequest(event) {
-    event.preventDefault();
-    console.log("requested friend's id = ", event.target.name);
-    removeFriendRequest(event.target.name);
-  }
+  async function manageFriendRequest(event) {
+    const friend_id = event.target.dataset.friend_id;
+    const status = event.target.dataset.status;
 
-  function confirmFriendRequest(event) {
-    event.preventDefault();
-    console.log("requested friend's id = ", event.target.name);
-    removeFriendRequest(event.target.name);
+    try {
+      const res = await axios.patch("/friend/request", { friend_id, status });
+      console.log(res);
+      if (!res.data.error) {
+        if (status === "accept") {
+          addNewChatRoom(res.data.chatroom);
+        }
+        removeFriendRequest(friend_id);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   return (
@@ -115,7 +123,9 @@ function SideBar() {
               <Badge
                 variant="dot"
                 color={
-                  Data.auth.friendrequests.length > 0 ? "success" : "default"
+                  Data?.auth?.received_friend_requests?.length > 0
+                    ? "success"
+                    : "default"
                 }
               >
                 <GroupAddRoundedIcon />
@@ -137,9 +147,20 @@ function SideBar() {
         </div>
 
         {/* friend's list */}
-        {Data.auth.chatrooms.map((friend) => (
-          <Friend key={friend.id} id={friend.id} name={friend.name} />
-        ))}
+        {Data?.auth?.chatrooms?.map(
+          (chat) =>
+            chat.members.length > 1 && (
+              <Friend
+                key={chat._id}
+                id={chat._id}
+                name={
+                  chat.display_name ||
+                  chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
+                    .display_name
+                }
+              />
+            )
+        )}
       </div>
 
       {/* new friends modal */}
@@ -236,25 +257,33 @@ function SideBar() {
           <span className="overflow-auto">
             {/* friend request */}
             <span>
-              {Data.auth.friendrequests.length > 0 && (
+              {Data?.auth?.received_friend_requests?.length > 0 && (
                 <i>
                   <u>Friend Requests</u>
                 </i>
               )}
-              {Data.auth.friendrequests.map((data, index) => {
+              {Data?.auth?.received_friend_requests?.map((data) => {
                 return (
                   <span
-                    key={index}
+                    key={data._id}
                     className="flex flex-row justify-between gap-3 items-center px-2 m-1 "
                   >
-                    <span className="text-sm font-bold">{data.name}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold capitalize">
+                        {data.display_name}
+                      </span>
+                      <span className="text-xs font-normal lowercase">
+                        {data.username}
+                      </span>
+                    </div>
                     <span className="text-sm font-bold">
                       <Button
                         color="secondary"
                         variant="outlined"
-                        name={data.id}
+                        data-friend_id={data._id}
+                        data-status={"accept"}
                         sx={{ padding: "0 4px", margin: 0 }}
-                        onClick={confirmFriendRequest}
+                        onClick={manageFriendRequest}
                       >
                         accept✅
                       </Button>
@@ -262,11 +291,12 @@ function SideBar() {
                       <Button
                         color="secondary"
                         variant="outlined"
-                        name={data.id}
+                        data-friend_id={data._id}
+                        data-status={"reject"}
                         sx={{ padding: "0 4px", margin: 0 }}
-                        onClick={cancelFriendRequest}
+                        onClick={manageFriendRequest}
                       >
-                        cancel❌
+                        reject❌
                       </Button>
                     </span>
                   </span>
@@ -290,25 +320,32 @@ function SideBar() {
                     <u>Search Results</u>
                   </i>
                 )}
-                {searchedFriendsList.map((data, index) => {
+                {searchedFriendsList.map((data) => {
                   return (
-                    <span
-                      key={index}
-                      className="flex flex-row justify-between gap-3 items-center px-2 m-1 "
+                    <div
+                      key={data._id}
+                      className="flex flex-row justify-between gap-3 items-center px-2 m-1 border-l-[5px] rounded-l-lg border-gray-900/50"
                     >
-                      <span className="text-sm font-bold">{data.username}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold capitalize">
+                          {data.display_name}
+                        </span>
+                        <span className="text-xs font-normal lowercase">
+                          {data.username}
+                        </span>
+                      </div>
                       <span className="text-sm font-bold">
                         <Button
                           color="secondary"
                           variant="outlined"
-                          name={data.id}
+                          name={data._id}
                           sx={{ padding: "0 4px", margin: 0 }}
                           onClick={addNewFriend}
                         >
-                          Message
+                          Request
                         </Button>
                       </span>
-                    </span>
+                    </div>
                   );
                 })}
               </span>

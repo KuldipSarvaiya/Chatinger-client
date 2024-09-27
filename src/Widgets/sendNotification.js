@@ -1,7 +1,7 @@
 function sendNotification(sender, message) {
   Notification.requestPermission().then((perm) => {
     if (perm !== "granted") {
-      alert("Please allow notification to get latest messages");
+      alert("Please allow notification to get Hot Notifications");
       return;
     }
     new Notification(`${sender} : ${message} `, {
