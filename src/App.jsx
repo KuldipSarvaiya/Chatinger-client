@@ -9,16 +9,21 @@ import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { Context } from "./ContextProvider";
+import sendNotification from "./Widgets/sendNotification";
+import FetchProfile from "./Pages/Login/FetchProfile";
 
 function App() {
   // const { setSocket } = useDatas();
-  const { setSocket } = useContext(Context);
+  const { Data, setSocket, setInitialState } = useContext(Context);
   // const navigate = useNavigate();
   const socket = useRef(null);
 
   useLayoutEffect(() => {
     axios.defaults.baseURL = "http://127.0.0.1:8080";
-    axios.defaults.headers.common.Authorization = "bearer default_header";
+    const token = window.localStorage.getItem("user");
+    if (token) {
+      axios.defaults.headers.common.Authorization = "Bearer " + token;
+    }
   }, []);
 
   // create a connection variable
@@ -27,26 +32,44 @@ function App() {
     socket.current.on("connect", () => {
       console.log("Connected to the socket server!");
       setSocket(socket.current);
+      if (Data.socket)
+        sendNotification("Chatinger", "You'r All Set For Hot Chats");
     });
 
     return () => {
       console.log("clearing side effect from App.jsx");
       socket.current.close();
-      setSocket(null);
+      setInitialState()
     };
   }, []);
 
-  // if (!Data.isLoggedIn) navigate("/signin");
-
   return (
+    <>
       <Routes>
-        <Route path="/" element={<Home />}>
-          <Route path=":roomId" element={<ChatRoom />} />
+        <Route
+          path="/"
+          element={
+            <FetchProfile>
+              <Home />
+            </FetchProfile>
+          }
+        >
+          <Route
+            path=":roomId"
+            element={
+              Data.socket ? (
+                <ChatRoom />
+              ) : (
+                <center>Your Chat Room is Loading...</center>
+              )
+            }
+          />
         </Route>
         <Route path="/signin" element={<SignIn />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+    </>
   );
 }
 
