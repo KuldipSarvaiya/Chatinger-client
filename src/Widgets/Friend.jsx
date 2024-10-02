@@ -31,7 +31,7 @@ const alphabetColors = {
   z: "#2563EB",
 };
 
-function Friend({ name, id }) {
+function Friend({ name, id, last_message, username }) {
   const activeStyle =
     "border-l-4 border-emerald-600 bg-emerald-200 text-slate-600";
 
@@ -64,7 +64,9 @@ function Friend({ name, id }) {
           } flex flex-col flex-nowrap gap-0`}
         >
           {name?.slice(0, 19)}
-          <span className="text-xs font-normal overflow-hidden whitespace-nowrap">{"".slice(0, 28)}</span>
+          <span className="text-xs lowercase font-normal overflow-hidden whitespace-nowrap">
+            {`${last_message || username}`.slice(0, 28)}
+          </span>
         </div>
       </div>
       <center className="">
@@ -77,6 +79,8 @@ function Friend({ name, id }) {
 Friend.propTypes = {
   name: PropTypes.string.isRequired,
   id: PropTypes.string.isRequired,
+  last_message: PropTypes.string,
+  username: PropTypes.string.isRequired,
 };
 
 export default Friend;

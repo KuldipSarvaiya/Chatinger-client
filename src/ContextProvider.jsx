@@ -42,7 +42,7 @@ function ContextProvider({ children }) {
       case "addnewchatroom":
         return {
           ...prevState,
-          auth: {chatrooms: [...prevState.auth, ...prevState.auth.chatrooms, props.new_chatroom],}
+          auth: {chatrooms: [...prevState.auth.chatrooms, props.new_chatroom],}
         };
       case "remove_chatroom":
         return {
@@ -96,7 +96,7 @@ function ContextProvider({ children }) {
 console.log(auth);
 
     // setting default auth for every request
-    axios.defaults.headers.common.Authorization = `bearer ${auth.jwt}`;
+    axios.defaults.headers.common.Authorization = `Bearer ${auth.jwt}`;
     window.localStorage.setItem("user", auth.jwt);
 
     Dispatch({ type: "signin", auth });
@@ -107,7 +107,7 @@ console.log(auth);
       "\n\n*********im going to reset all state hoooo stop me if you can\n\n"
     );
     // setting default auth for every request
-    axios.defaults.headers.common.Authorization = "bearer default_header";
+    axios.defaults.headers.common.Authorization = "Bearer default_header";
     window.localStorage.clear();
 
     Dispatch({ type: "signout" });

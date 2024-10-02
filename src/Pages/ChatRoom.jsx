@@ -3,7 +3,6 @@ import Message from "../Widgets/Message";
 import { Avatar, Button, IconButton, Modal, Paper } from "@mui/material";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
 import { useContext, useEffect, useRef, useState } from "react";
-// import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
@@ -13,6 +12,7 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { Context } from "../ContextProvider";
 import axios from "axios";
+import UpdateIcon from "@mui/icons-material/Update";
 // import useDatas from "../DataStore/useDatas";
 
 function ChatRoom() {
@@ -21,7 +21,9 @@ function ChatRoom() {
   const [msgList, setMsgList] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const msg = useRef(null);
+  const lastKeyPressed = useRef(null);
   const messagesRef = useRef(null);
+  const oldMessagesFetched = useRef(false);
   // const { Data } = useDatas();
   const { Data, removeChatRoom } = useContext(Context);
   const chat = Data?.auth?.chatrooms?.filter(({ _id }) => _id === roomId)[0];
@@ -37,15 +39,26 @@ function ChatRoom() {
 
     const messageListener = (message) => {
       console.log("Message received from server = ", message);
-      setMsgList((prev) => [...prev, { isMyMessage: false, message }]);
+      setMsgList((prev) => [
+        ...prev,
+        { _id: Date.now(), isMyMessage: false, message },
+      ]);
       scrollDown();
     };
 
-    // setting  up message
     if (Data.socket !== null) {
       console.log(`\n******now i'll try to join ${roomId}`);
       Data.socket.emit("join_room", { room: roomId });
       Data.socket.on("messageToClient", messageListener);
+
+      Data.socket.emit("retriveMessages", {
+        room: roomId,
+        payload: {
+          chatroom_id: roomId,
+          skip: 0,
+          take: 100,
+        },
+      });
     }
 
     return () => {
@@ -55,12 +68,52 @@ function ChatRoom() {
     };
   }, [Data.socket, roomId]);
 
+  // effect to load first messages
+  useEffect(() => {
+    const listMessages = (data) => {
+      console.log("Listing message");
+      console.log(data);
+      const convertedData = data.map((item) => {
+        return {
+          _id: item._id,
+          message: item.text,
+          isMyMessage: item.sent_by._id === Data.auth._id,
+          deliveredAt: item.deliveredAt,
+        };
+      });
+      if (!oldMessagesFetched.current) {
+        setMsgList((prev) => [...prev, ...convertedData]);
+        scrollDown();
+      }
+      oldMessagesFetched.current = true;
+    };
+
+    if (Data.socket) {
+      Data.socket.on("listMessages", listMessages);
+      if (oldMessagesFetched.current === false)
+        Data.socket.emit("retriveMessages", {
+          room: roomId,
+          payload: {
+            chatroom_id: roomId,
+            skip: 0,
+            take: 100,
+          },
+        });
+    }
+
+    return () => {
+      Data.socket.off("listMessages", listMessages);
+      oldMessagesFetched.current = false;
+    };
+  }, [Data.socket, roomId]);
+
   function sendMessage() {
     if (!msg.current.value) return;
 
     Data.socket.emit("messageToServer", {
       room: roomId,
       message: msg.current.value,
+      sent_by: Data.auth._id,
     });
 
     setMsgList((prev) => [
@@ -110,19 +163,40 @@ function ChatRoom() {
     }
   }
 
+  async function clearChats() {
+    try {
+      const res = await axios.delete("/friend/clear_chats/" + roomId);
+      if (!res.data.error) {
+        Data.socket.emit("retriveMessages", {
+          room: roomId,
+          payload: {
+            chatroom_id: roomId,
+            skip: 0,
+            take: 100,
+          },
+        });
+        setMsgList([]);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   return (
     <>
       <section className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1">
         {/* friend's detail navbar */}
-        <span className="p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-3 uppercase flex-row flex-nowrap min-h-fit">
-          <Avatar
-            variant="circular"
-            sx={{ bgcolor: "transparent", border: "2px dashed black" }}
-          >
-            {name.indexOf(" ") !== -1
-              ? name.split(" ")[0].charAt(0) + name.split(" ")[1].charAt(0)
-              : name.split(" ")[0].charAt(0)}
-          </Avatar>
+        <span className="p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit">
+          <span className="hidden md:inline">
+            <Avatar
+              variant="circular"
+              sx={{ bgcolor: "transparent", border: "2px dashed black" }}
+            >
+              {name.indexOf(" ") !== -1
+                ? name.split(" ")[0].charAt(0) + name.split(" ")[1].charAt(0)
+                : name.split(" ")[0].charAt(0)}
+            </Avatar>
+          </span>
           <span className="grow -md:text-lg -lg:text-lg whitespace-nowrap">
             {name}
           </span>
@@ -153,6 +227,9 @@ function ChatRoom() {
               <PersonRemoveAlt1Icon />
             </IconButton>
           )}
+          <IconButton title="Clear Chat" onClick={clearChats}>
+            <UpdateIcon />
+          </IconButton>
           <IconButton title="Close Chat" onClick={() => navigate("/")}>
             <CloseFullscreenRoundedIcon />
           </IconButton>
@@ -173,10 +250,10 @@ function ChatRoom() {
               />
             </span>
           )}
-          {msgList.map((message, index) => {
+          {msgList.map((message) => {
             return (
               <Message
-                key={index}
+                key={message._id}
                 isMyMessage={message.isMyMessage}
                 message={message.message}
               />
@@ -190,8 +267,10 @@ function ChatRoom() {
             className="w-3/4 text-slate-700 max-md:w-11/12 rounded-s-md outline-none text-xl resize-none px-1 border-b-4 border-blue-500"
             placeholder="Type Your Message..."
             ref={msg}
-            onKeyUp={(e) => {
-              if (e.key === "Enter") sendMessage();
+            onKeyDownCapture={(e) => {
+              if (e.key === "Enter" && lastKeyPressed.current !== "Shift")
+                sendMessage();
+              lastKeyPressed.current = e.key;
             }}
           />
           <button

@@ -26,7 +26,7 @@ function SignIn() {
     }
   }, []);
 
-  async function handleSubmitAndSendOtp(data) {
+  async function handleSubmitSignin(data) {
     console.log(data);
 
     setLoading(true);
@@ -48,7 +48,7 @@ function SignIn() {
           setError("password", { message: "username or password is wrong" });
         else
           setError("password", {
-            message: "something went wrong, please try again",
+            message: "Failed to signin, please try again"
           });
       } finally {
         setLoading(false);
@@ -72,7 +72,7 @@ function SignIn() {
         </i>
       </span>
       <form
-        onSubmit={handleSubmit(handleSubmitAndSendOtp)}
+        onSubmit={handleSubmit(handleSubmitSignin)}
         className="grid grid-cols-1 gap-2 justify-evenly items-center w-full"
       >
         <TextField

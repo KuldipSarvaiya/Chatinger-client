@@ -29,19 +29,29 @@ function SignUp() {
 
     setLoading(true);
     if (data) {
-      const signupRes = await axios.post("/auth/signup", { ...data });
-      console.log(signupRes);
-      setLoading(false);
+      try {
+        const signupRes = await axios.post("/auth/signup", { ...data });
+        console.log(signupRes);
+        setLoading(false);
 
-      if (signupRes.data.type === "duplication") {
-        return setError("username", {
-          message: "Username already Exist",
+        if (signupRes.data.type === "duplication") {
+          return setError("username", {
+            message: "Username already Exist, Try different",
+          });
+        }
+
+        doSignIn({ ...signupRes.data.user, jwt: signupRes.data.jwt });
+
+        navigate("/", { replace: true });
+      } catch (error) {
+        console.log(error);
+        setError("password", {
+          message: "Failed to signup, please try again"
         });
       }
-
-      doSignIn({...signupRes.data.user, jwt: signupRes.data.jwt});
-
-      navigate("/", { replace: true });
+      finally {
+        setLoading(false)
+      }
     }
   }
 

@@ -91,7 +91,7 @@ function useDatas() {
     console.log("im into the doSignIn method");
 
     // setting default auth for every request
-    axios.defaults.headers.common.Authorization = `bearer ${auth.jwt}`;
+    axios.defaults.headers.common.Authorization = `Bearer ${auth.jwt}`;
     document.cookie = auth.jwt;
 
     Dispatch({ type: "signin", auth });
@@ -102,7 +102,7 @@ function useDatas() {
       "\n\n*********im going to reset all state hoooo stop me if you can\n\n"
     );
     // setting default auth for every request
-    axios.defaults.headers.common.Authorization = "bearer default_header";
+    axios.defaults.headers.common.Authorization = "Bearer default_header";
 
     Dispatch({ type: "signout" });
   };

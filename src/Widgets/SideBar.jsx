@@ -158,6 +158,8 @@ function SideBar() {
                   chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
                     .display_name
                 }
+                username={chat.members.filter(mem => mem._id !== Data.auth._id)[0].username}
+                last_message=""
               />
             )
         )}
