@@ -29,6 +29,11 @@ function SignIn() {
   async function handleSubmitSignin(data) {
     console.log(data);
 
+    if (/\s/.test(data.username)) {
+      setError("username", { message: "no whitespace character is allowed" });
+      return;
+    }
+
     setLoading(true);
     if (data) {
       try {
@@ -40,15 +45,15 @@ function SignIn() {
             message: "username or password is wrong",
           });
 
-        doSignIn({...signinRes.data.user, jwt: signinRes.data.jwt});
+        doSignIn({ ...signinRes.data.user, jwt: signinRes.data.jwt });
         navigate("/", { replace: true });
-      } catch (err) {        
+      } catch (err) {
         setLoading(false);
         if (err?.response?.data?.error)
           setError("password", { message: "username or password is wrong" });
         else
           setError("password", {
-            message: "Failed to signin, please try again"
+            message: "Failed to signin, please try again",
           });
       } finally {
         setLoading(false);

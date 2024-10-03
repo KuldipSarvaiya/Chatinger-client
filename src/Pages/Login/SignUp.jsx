@@ -26,6 +26,11 @@ function SignUp() {
       setError("username", { message: "use atleast 5 to 50 characters" });
       return;
     }
+    
+    if (/\s/.test(data.username)) {
+      setError("username", { message: "no whitespace character is allowed" });
+      return;
+    }
 
     setLoading(true);
     if (data) {

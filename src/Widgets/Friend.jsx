@@ -65,7 +65,7 @@ function Friend({ name, id, last_message, username }) {
         >
           {name?.slice(0, 19)}
           <span className="text-xs lowercase font-normal overflow-hidden whitespace-nowrap">
-            {`${last_message || username}`.slice(0, 28)}
+            {`${last_message || username || ""}`.slice(0, 28)}
           </span>
         </div>
       </div>
