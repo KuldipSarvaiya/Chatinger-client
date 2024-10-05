@@ -3,7 +3,6 @@ import Message from "../Widgets/Message";
 import { Avatar, Button, IconButton, Modal, Paper } from "@mui/material";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
 import { useContext, useEffect, useRef, useState } from "react";
-// import RemoveCircleOutlineRoundedIcon from "@mui/icons-material/RemoveCircleOutlineRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import PersonAddAlt1RoundedIcon from "@mui/icons-material/PersonAddAlt1Rounded";
@@ -13,6 +12,7 @@ import DeleteForeverIcon from "@mui/icons-material/DeleteForever";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { Context } from "../ContextProvider";
 import axios from "axios";
+import UpdateIcon from "@mui/icons-material/Update";
 // import useDatas from "../DataStore/useDatas";
 
 function ChatRoom() {
@@ -20,16 +20,18 @@ function ChatRoom() {
   const navigate = useNavigate();
   const [msgList, setMsgList] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [invitableFriends, setInvitableFriends] = useState([]);
   const msg = useRef(null);
+  const lastKeyPressed = useRef(null);
   const messagesRef = useRef(null);
+  const oldMessagesFetched = useRef(false);
   // const { Data } = useDatas();
   const { Data, removeChatRoom } = useContext(Context);
   const chat = Data?.auth?.chatrooms?.filter(({ _id }) => _id === roomId)[0];
-
-  console.log("chatroom reloaded", roomId);
-  const name = chat?.members.filter(({ _id }) => _id !== Data.auth._id)[0]
-    .display_name;
-  const type = chat?.members.filter(({ _id }) => _id !== Data.auth._id)[0].type;
+  const name =
+    chat.display_name ||
+    chat.members.filter(({ _id }) => _id !== Data.auth._id)[0].display_name;
+  console.log("chatroom reloaded", roomId, chat.members);
 
   useEffect(() => {
     // reset messages when room changed
@@ -37,15 +39,31 @@ function ChatRoom() {
 
     const messageListener = (message) => {
       console.log("Message received from server = ", message);
-      setMsgList((prev) => [...prev, { isMyMessage: false, message }]);
+      setMsgList((prev) => [
+        ...prev,
+        {
+          _id: Date.now(),
+          isMyMessage: false,
+          message: message.message,
+          sent_by: message.display_name,
+        },
+      ]);
       scrollDown();
     };
 
-    // setting  up message
     if (Data.socket !== null) {
       console.log(`\n******now i'll try to join ${roomId}`);
       Data.socket.emit("join_room", { room: roomId });
       Data.socket.on("messageToClient", messageListener);
+
+      Data.socket.emit("retriveMessages", {
+        room: roomId,
+        payload: {
+          chatroom_id: roomId,
+          skip: 0,
+          take: 100,
+        },
+      });
     }
 
     return () => {
@@ -55,12 +73,78 @@ function ChatRoom() {
     };
   }, [Data.socket, roomId]);
 
+  // effect to load first messages
+  useEffect(() => {
+    const listMessages = (data) => {
+      console.log("Listing message");
+      console.log(data);
+      const convertedData = data.map((item) => {
+        return {
+          _id: item._id,
+          message: item.text,
+          isMyMessage: item.sent_by._id === Data.auth._id,
+          deliveredAt: item.deliveredAt,
+          sent_by: item.sent_by.display_name,
+        };
+      });
+      if (!oldMessagesFetched.current) {
+        setMsgList((prev) => [...prev, ...convertedData]);
+        scrollDown();
+      }
+      oldMessagesFetched.current = true;
+    };
+
+    if (Data.socket) {
+      Data.socket.on("listMessages", listMessages);
+      if (oldMessagesFetched.current === false)
+        Data.socket.emit("retriveMessages", {
+          room: roomId,
+          payload: {
+            chatroom_id: roomId,
+            skip: 0,
+            take: 100,
+          },
+        });
+    }
+
+    return () => {
+      Data.socket.off("listMessages", listMessages);
+      oldMessagesFetched.current = false;
+      setMsgList([]);
+    };
+  }, [Data.socket, roomId]);
+
+  // to fetch invitableFriends
+  useEffect(() => {
+    if (chat && showGroupModal && invitableFriends.length < 1)
+      fetchInvitableFriends();
+
+    return () => {
+      setInvitableFriends([]);
+    };
+  }, [showGroupModal, chat]);
+
+  async function fetchInvitableFriends() {
+    try {
+      const res = await axios.get("/group/members?chatroom_id=" + roomId);
+      console.log(
+        chat.members.map((item) => item._id),
+        res.data.members.map((item) => item._id)
+      );
+      if (!res.data.error) setInvitableFriends(res.data?.members);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   function sendMessage() {
     if (!msg.current.value) return;
 
     Data.socket.emit("messageToServer", {
       room: roomId,
       message: msg.current.value,
+      sent_by: Data.auth._id,
+      display_name: Data.auth.display_name,
     });
 
     setMsgList((prev) => [
@@ -82,18 +166,21 @@ function ChatRoom() {
     }, 0);
   }
 
-  function removeGroupMember(event) {
-    event.preventDefault();
-    console.log(event.target.name);
-  }
+  async function manageGroupMember(operation_type, member_id) {
+    try {
+      const res = await axios.put("/group/members", {
+        member_id,
+        operation_type,
+        chatroom_id: roomId,
+      });
+      console.log(res);
 
-  function inviteGroupMember(event) {
-    event.preventDefault();
-    console.log(event.target.name);
-  }
-
-  function deleteGroup() {
-    console.log("iam deleting group");
+      if (!res.data.error) {
+        setShowGroupModal(false);
+      }
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   async function removeFriend() {
@@ -110,49 +197,74 @@ function ChatRoom() {
     }
   }
 
+  async function clearChats() {
+    try {
+      const res = await axios.delete("/friend/clear_chats/" + roomId);
+      if (!res.data.error) {
+        Data.socket.emit("retriveMessages", {
+          room: roomId,
+          payload: {
+            chatroom_id: roomId,
+            skip: 0,
+            take: 100,
+          },
+        });
+        setMsgList([]);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   return (
     <>
       <section className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1">
         {/* friend's detail navbar */}
-        <span className="p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-3 uppercase flex-row flex-nowrap min-h-fit">
-          <Avatar
-            variant="circular"
-            sx={{ bgcolor: "transparent", border: "2px dashed black" }}
-          >
-            {name.indexOf(" ") !== -1
-              ? name.split(" ")[0].charAt(0) + name.split(" ")[1].charAt(0)
-              : name.split(" ")[0].charAt(0)}
-          </Avatar>
-          <span className="grow -md:text-lg -lg:text-lg whitespace-nowrap">
+        <span className="p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit">
+          <span className="hidden md:inline">
+            <Avatar
+              variant="circular"
+              sx={{ bgcolor: "transparent", border: "2px dashed black" }}
+            >
+              {name.indexOf(" ") !== -1
+                ? name.split(" ")[0].charAt(0) + name.split(" ")[1].charAt(0)
+                : name.split(" ")[0].charAt(0)}
+            </Avatar>
+          </span>
+          <span className="grow ml-1 -md:text-lg -lg:text-lg whitespace-nowrap">
             {name}
           </span>
 
           <IconButton title="private video chat" onClick={() => {}}>
             <VideoChatIcon />
           </IconButton>
-          {type === "group" ? (
+          {chat?.type === "group" ? (
             <>
-              {chat?.admin === Data.auth._id && (
+              {chat?.admin === Data.auth._id ? (
                 <IconButton
                   title="add member to group"
                   onClick={() => setShowGroupModal(true)}
                 >
                   <PersonAddAlt1RoundedIcon />
                 </IconButton>
+              ) : (
+                <IconButton
+                  title="exit group chat"
+                  onClick={() => {}}
+                  className="rotate-180"
+                >
+                  <LogoutIcon />
+                </IconButton>
               )}
-              <IconButton
-                title="exit group chat"
-                onClick={() => {}}
-                className="rotate-180"
-              >
-                <LogoutIcon />
-              </IconButton>
             </>
           ) : (
             <IconButton title="remove friend" onClick={removeFriend}>
               <PersonRemoveAlt1Icon />
             </IconButton>
           )}
+          <IconButton title="Clear Chat" onClick={clearChats}>
+            <UpdateIcon />
+          </IconButton>
           <IconButton title="Close Chat" onClick={() => navigate("/")}>
             <CloseFullscreenRoundedIcon />
           </IconButton>
@@ -173,12 +285,16 @@ function ChatRoom() {
               />
             </span>
           )}
-          {msgList.map((message, index) => {
+          {msgList.map((message) => {
+            console.log(message);
+
             return (
               <Message
-                key={index}
+                key={message._id}
                 isMyMessage={message.isMyMessage}
                 message={message.message}
+                sent_by={message.sent_by}
+                isGroup={chat?.type === "group"}
               />
             );
           })}
@@ -190,8 +306,10 @@ function ChatRoom() {
             className="w-3/4 text-slate-700 max-md:w-11/12 rounded-s-md outline-none text-xl resize-none px-1 border-b-4 border-blue-500"
             placeholder="Type Your Message..."
             ref={msg}
-            onKeyUp={(e) => {
-              if (e.key === "Enter") sendMessage();
+            onKeyDownCapture={(e) => {
+              if (e.key === "Enter" && lastKeyPressed.current !== "Shift")
+                sendMessage();
+              lastKeyPressed.current = e.key;
             }}
           />
           <button
@@ -246,73 +364,90 @@ function ChatRoom() {
           </span>
 
           {/* group members and remove member */}
-          <spam className="overflow-auto">
+          <span className="overflow-auto">
             <u>
               <i>Group Members</i>
             </u>
-            <center>
-              <h1>
-                <i>----//-- 0.0 Members Are In This Group --//----</i>
-              </h1>
-            </center>
-            <span
-              key={"index"}
-              className="flex flex-row justify-between gap-3 items-center px-2 m-1 "
-            >
-              <span className="text-sm font-bold">{"data.username"}</span>
-              <span className="text-sm font-bold">
-                <Button
-                  color="secondary"
-                  variant="outlined"
-                  name={"data.id"}
-                  sx={{ padding: "0 4px", margin: 0 }}
-                  onClick={removeGroupMember}
+            {chat.members.filter(({ _id }) => _id !== Data.auth._id).length <
+              1 && (
+              <center>
+                <h1>
+                  <i>----//-- 0.0 Members Are In This Group --//----</i>
+                </h1>
+              </center>
+            )}
+            {chat.members
+              .filter(({ _id }) => _id !== Data.auth._id)
+              .map((item) => (
+                <span
+                  key={item._id}
+                  className="border-l-[5px] rounded-l-lg border-gray-900/50 flex flex-row justify-between gap-3 items-center px-2 m-1 "
                 >
-                  Remove Member ❌
-                </Button>
-              </span>
-            </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold capitalize">
+                      {item.display_name}
+                    </span>
+                    <span className="text-xs font-normal lowercase">
+                      {item.username}
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold">
+                    <Button
+                      color="secondary"
+                      variant="outlined"
+                      sx={{ padding: "0 4px", margin: 0 }}
+                      onClick={() => manageGroupMember("remove", item._id)}
+                    >
+                      Remove Member ❌
+                    </Button>
+                  </span>
+                </span>
+              ))}
+
+            <br />
+            <br />
 
             {/* invite friends list */}
-            <br />
             <u>
               <i>Invite Friends To Group</i>
             </u>
-            <center>
-              <h1>
-                <i>----//-- No Friend Left To Invite To Group --//----</i>
-              </h1>
-            </center>
-            <span
-              key={"index"}
-              className="flex flex-row justify-between gap-3 items-center px-2 m-1 "
-            >
-              <span className="text-sm font-bold">{"data.username"}</span>
-              <span className="text-sm font-bold">
-                <Button
-                  color="secondary"
-                  variant="outlined"
-                  name={"data.id"}
-                  sx={{ padding: "0 4px", margin: 0 }}
-                  onClick={inviteGroupMember}
-                >
-                  Invite🔀
-                </Button>
+            {invitableFriends.map((item) => (
+              <span
+                key={item._id}
+                className="border-l-[5px] rounded-l-lg border-gray-900/50 flex flex-row justify-between gap-3 items-center px-2 m-1 "
+              >
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold capitalize">
+                    {item.display_name}
+                  </span>
+                  <span className="text-xs font-normal lowercase">
+                    {item.username}
+                  </span>
+                </div>
+                <span className="text-sm font-bold">
+                  <Button
+                    color="secondary"
+                    variant="outlined"
+                    sx={{ padding: "0 4px", margin: 0 }}
+                    onClick={() => manageGroupMember("add", item._id)}
+                  >
+                    Add ➕
+                  </Button>
+                </span>
               </span>
-            </span>
-          </spam>
+            ))}
+          </span>
 
           {/* delete group button */}
-          <span className="w-full text-center pt-8">
+          <span className="w-full text-center pt-4 mb-2">
             <Button
               variant="contained"
               color="error"
               size="small"
-              onClick={deleteGroup}
+              onClick={removeFriend}
             >
               <DeleteForeverIcon />
-              &nbsp;Delete Group Permenetly&nbsp;
-              <DeleteForeverIcon />
+              &nbsp;Delete Group Permenetly
             </Button>
           </span>
         </Paper>

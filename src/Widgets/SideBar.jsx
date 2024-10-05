@@ -18,7 +18,7 @@ import GroupAddRoundedIcon from "@mui/icons-material/GroupAddRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import Diversity1RoundedIcon from "@mui/icons-material/Diversity1Rounded";
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { Context } from "../ContextProvider";
 import axios from "axios";
 
@@ -32,6 +32,7 @@ function SideBar() {
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchedFriendsList, setSearchedFriendsList] = useState(undefined);
+  const groupMessageRef = useRef(null);
 
   useEffect(() => {
     const token = window.localStorage.getItem("user");
@@ -72,15 +73,39 @@ function SideBar() {
     }
   }
 
-  function createNewGroup(event) {
+  async function createNewGroup(event) {
     event.preventDefault();
-    setIsSearching(true);
     const formData = new FormData(event.target);
-    console.log(formData.get("group_name"));
-    console.log(event);
-    setTimeout(() => {
+    const group_name = formData.get("group_name");
+    groupMessageRef.current.innerHTML = "";
+
+    if (/\s/.test(group_name)) {
+      groupMessageRef.current.innerHTML =
+        "Group name cannot contain whitespace characters";
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const res = await axios.post("/group", { group_name: group_name });
+      console.log(res);
+      if (!res.data.error) {
+        const chatroom = res.data.chatroom[0];
+        const me = {
+          _id: Data.auth._id,
+          username: Data.auth.username,
+          display_name: Data.auth.display_name,
+        };
+        chatroom.members = [me];
+        chatroom.admin = me;
+        addNewChatRoom(chatroom);
+        setShowGroupModal(false);
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
       setIsSearching(false);
-    }, 3000);
+    }
   }
 
   async function manageFriendRequest(event) {
@@ -147,9 +172,9 @@ function SideBar() {
         </div>
 
         {/* friend's list */}
-        {Data?.auth?.chatrooms?.map(
+        {Data?.auth?.chatrooms?.reverse()?.map(
           (chat) =>
-            chat.members.length > 1 && (
+            (chat.members.length > 1 || chat.type === "group") && (
               <Friend
                 key={chat._id}
                 id={chat._id}
@@ -158,6 +183,11 @@ function SideBar() {
                   chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
                     .display_name
                 }
+                username={
+                  chat.members.filter((mem) => mem._id !== Data.auth._id)[0]
+                    ?.username
+                }
+                last_message=""
               />
             )
         )}
@@ -379,6 +409,7 @@ function SideBar() {
               fullWidth
               required
             />
+            <span ref={groupMessageRef} className="text-red-500 text-xs"></span>
             <Button
               variant="contained"
               type="submit"

@@ -26,8 +26,13 @@ function SignIn() {
     }
   }, []);
 
-  async function handleSubmitAndSendOtp(data) {
+  async function handleSubmitSignin(data) {
     console.log(data);
+
+    if (/\s/.test(data.username)) {
+      setError("username", { message: "no whitespace character is allowed" });
+      return;
+    }
 
     setLoading(true);
     if (data) {
@@ -40,15 +45,15 @@ function SignIn() {
             message: "username or password is wrong",
           });
 
-        doSignIn({...signinRes.data.user, jwt: signinRes.data.jwt});
+        doSignIn({ ...signinRes.data.user, jwt: signinRes.data.jwt });
         navigate("/", { replace: true });
-      } catch (err) {        
+      } catch (err) {
         setLoading(false);
         if (err?.response?.data?.error)
           setError("password", { message: "username or password is wrong" });
         else
           setError("password", {
-            message: "something went wrong, please try again",
+            message: "Failed to signin, please try again",
           });
       } finally {
         setLoading(false);
@@ -72,7 +77,7 @@ function SignIn() {
         </i>
       </span>
       <form
-        onSubmit={handleSubmit(handleSubmitAndSendOtp)}
+        onSubmit={handleSubmit(handleSubmitSignin)}
         className="grid grid-cols-1 gap-2 justify-evenly items-center w-full"
       >
         <TextField
