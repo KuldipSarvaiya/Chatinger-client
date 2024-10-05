@@ -1,6 +1,15 @@
 import { useNavigate, useParams } from "react-router-dom";
 import Message from "../Widgets/Message";
-import { Avatar, Button, IconButton, Modal, Paper } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  Button,
+  IconButton,
+  Modal,
+  Paper,
+  SpeedDial,
+  SpeedDialAction,
+} from "@mui/material";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
 import { useContext, useEffect, useRef, useState } from "react";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
@@ -13,7 +22,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Context } from "../ContextProvider";
 import axios from "axios";
 import UpdateIcon from "@mui/icons-material/Update";
-// import useDatas from "../DataStore/useDatas";
+import { MoreVert } from "@mui/icons-material";
 
 function ChatRoom() {
   const { roomId } = useParams();
@@ -25,13 +34,15 @@ function ChatRoom() {
   const lastKeyPressed = useRef(null);
   const messagesRef = useRef(null);
   const oldMessagesFetched = useRef(false);
-  // const { Data } = useDatas();
   const { Data, removeChatRoom } = useContext(Context);
+  const [chatMembers, setChatMembers] = useState([]);
   const chat = Data?.auth?.chatrooms?.filter(({ _id }) => _id === roomId)[0];
   const name =
-    chat.display_name ||
-    chat.members.filter(({ _id }) => _id !== Data.auth._id)[0].display_name;
-  console.log("chatroom reloaded", roomId, chat.members);
+    chat?.display_name ||
+    chatMembers?.filter(({ _id }) => _id !== Data?.auth?._id)?.[0]
+      ?.display_name;
+
+  console.log("chatroom reloaded", roomId, chatMembers);
 
   useEffect(() => {
     // reset messages when room changed
@@ -124,11 +135,23 @@ function ChatRoom() {
     };
   }, [showGroupModal, chat]);
 
+  useEffect(() => {
+    const room =
+      Data?.auth?.chatrooms?.find(({ _id }) => _id === roomId)?.members || [];
+
+    if (room.length === 0) navigate("/", { replace: true });
+
+    setChatMembers(room);
+    return () => {
+      setChatMembers([]);
+    };
+  }, [roomId]);
+
   async function fetchInvitableFriends() {
     try {
       const res = await axios.get("/group/members?chatroom_id=" + roomId);
       console.log(
-        chat.members.map((item) => item._id),
+        chatMembers.map((item) => item._id),
         res.data.members.map((item) => item._id)
       );
       if (!res.data.error) setInvitableFriends(res.data?.members);
@@ -176,7 +199,21 @@ function ChatRoom() {
       console.log(res);
 
       if (!res.data.error) {
-        setShowGroupModal(false);
+        if (operation_type === "add") {
+          setChatMembers((prev) => [
+            ...prev,
+            invitableFriends.filter(({ _id }) => _id === member_id)[0],
+          ]);
+          setInvitableFriends((prev) =>
+            prev.filter(({ _id }) => _id !== member_id)
+          );
+        } else {
+          setInvitableFriends((prev) => [
+            ...prev,
+            chatMembers.find(({ _id }) => _id === member_id),
+          ]);
+          setChatMembers((prev) => prev.filter(({ _id }) => _id !== member_id));
+        }
       }
     } catch (error) {
       console.log(error);
@@ -216,59 +253,96 @@ function ChatRoom() {
     }
   }
 
+  async function leaveGroup() {
+    try {
+      const res = await axios.delete("/group/leave_group/" + roomId);
+      if (!res.data.error) {
+        removeChatRoom(roomId);
+        navigate("/", { replace: true });
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   return (
     <>
       <section className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1">
         {/* friend's detail navbar */}
-        <span className="p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit">
+        <div className="relative chat_nav p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit">
           <span className="hidden md:inline">
             <Avatar
               variant="circular"
               sx={{ bgcolor: "transparent", border: "2px dashed black" }}
             >
-              {name.indexOf(" ") !== -1
-                ? name.split(" ")[0].charAt(0) + name.split(" ")[1].charAt(0)
-                : name.split(" ")[0].charAt(0)}
+              {name?.indexOf(" ") !== -1
+                ? name?.split(" ")?.[0]?.charAt?.(0) +
+                  name?.split(" ")?.[1]?.charAt(0)
+                : name?.split(" ")?.[0]?.charAt?.(0)}
             </Avatar>
           </span>
+
           <span className="grow ml-1 -md:text-lg -lg:text-lg whitespace-nowrap">
             {name}
           </span>
 
-          <IconButton title="private video chat" onClick={() => {}}>
-            <VideoChatIcon />
-          </IconButton>
-          {chat?.type === "group" ? (
-            <>
-              {chat?.admin === Data.auth._id ? (
-                <IconButton
-                  title="add member to group"
-                  onClick={() => setShowGroupModal(true)}
-                >
-                  <PersonAddAlt1RoundedIcon />
-                </IconButton>
+          <Box
+            sx={{
+              position: "absolute",
+              top: "0px",
+              right: "10px",
+              zIndex: "10",
+            }}
+          >
+            <SpeedDial
+              ariaLabel="SpeedDial playground example"
+              icon={<MoreVert />}
+              direction={"down"}
+            >
+              <SpeedDialAction
+                icon={<VideoChatIcon />}
+                tooltipTitle={<span>video&nbsp;call</span>}
+                tooltipOpen
+              />
+              {chat?.type === "group" ? (
+                chat?.admin === Data.auth._id ? (
+                  <SpeedDialAction
+                    icon={<PersonAddAlt1RoundedIcon />}
+                    tooltipTitle={<span>manage&nbsp;members</span>}
+                    tooltipOpen
+                    onClick={() => setShowGroupModal(true)}
+                  />
+                ) : (
+                  <SpeedDialAction
+                    icon={<LogoutIcon />}
+                    tooltipTitle={<span>leave&nbsp;group</span>}
+                    tooltipOpen
+                    onClick={leaveGroup}
+                  />
+                )
               ) : (
-                <IconButton
-                  title="exit group chat"
-                  onClick={() => {}}
-                  className="rotate-180"
-                >
-                  <LogoutIcon />
-                </IconButton>
+                <SpeedDialAction
+                  icon={<PersonRemoveAlt1Icon />}
+                  tooltipTitle={<span>remove&nbsp;friend</span>}
+                  tooltipOpen
+                  onClick={removeFriend}
+                />
               )}
-            </>
-          ) : (
-            <IconButton title="remove friend" onClick={removeFriend}>
-              <PersonRemoveAlt1Icon />
-            </IconButton>
-          )}
-          <IconButton title="Clear Chat" onClick={clearChats}>
-            <UpdateIcon />
-          </IconButton>
-          <IconButton title="Close Chat" onClick={() => navigate("/")}>
-            <CloseFullscreenRoundedIcon />
-          </IconButton>
-        </span>
+              <SpeedDialAction
+                icon={<UpdateIcon />}
+                tooltipTitle={<span>clear&nbsp;chat</span>}
+                tooltipOpen
+                onClick={clearChats}
+              />
+              <SpeedDialAction
+                icon={<CloseFullscreenRoundedIcon />}
+                tooltipTitle={<span>Close&nbsp;Chat</span>}
+                tooltipOpen
+                onClick={() => navigate("/")}
+              />
+            </SpeedDial>
+          </Box>
+        </div>
 
         {/* message display */}
         <section
@@ -281,7 +355,8 @@ function ChatRoom() {
               <img
                 src="assets/message_notification.png"
                 alt=""
-                className="drop-shadow-[0_25px_50px_rgba(255,255,255,1)] "
+                className="drop-shadow-[0_25px_50px_rgba(255,255,255,1)] z-0"
+                draggable="false"
               />
             </span>
           )}
@@ -368,7 +443,7 @@ function ChatRoom() {
             <u>
               <i>Group Members</i>
             </u>
-            {chat.members.filter(({ _id }) => _id !== Data.auth._id).length <
+            {chatMembers?.filter(({ _id }) => _id !== Data?.auth?._id)?.length <
               1 && (
               <center>
                 <h1>
@@ -376,9 +451,9 @@ function ChatRoom() {
                 </h1>
               </center>
             )}
-            {chat.members
-              .filter(({ _id }) => _id !== Data.auth._id)
-              .map((item) => (
+            {chatMembers
+              ?.filter(({ _id }) => _id !== Data?.auth?._id)
+              ?.map((item) => (
                 <span
                   key={item._id}
                   className="border-l-[5px] rounded-l-lg border-gray-900/50 flex flex-row justify-between gap-3 items-center px-2 m-1 "
@@ -408,9 +483,11 @@ function ChatRoom() {
             <br />
 
             {/* invite friends list */}
-            <u>
-              <i>Invite Friends To Group</i>
-            </u>
+            {invitableFriends.length > 0 && (
+              <u>
+                <i>Invite Friends To Group</i>
+              </u>
+            )}
             {invitableFriends.map((item) => (
               <span
                 key={item._id}

@@ -3,14 +3,12 @@ import { Button, CircularProgress, TextField } from "@mui/material";
 import { useContext, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-// import useDatas from "../../DataStore/useDatas";
 import axios from "axios";
 import { Context } from "../../ContextProvider";
 
 function SignIn() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  // const { Data, doSignIn } = useDatas();
   const { Data, doSignIn } = useContext(Context);
   const {
     // getValues,

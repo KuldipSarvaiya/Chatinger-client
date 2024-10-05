@@ -42,10 +42,10 @@ function Friend({ name, id, last_message, username }) {
   return (
     <>
       <div
-        className={`cursor-pointer py-2 pl-3 flex gap-3 flex-row flex-nowrap justify-start content-center  ${
+        className={`cursor-pointer py-1 pl-3 flex gap-3 flex-row flex-nowrap justify-start content-center  ${
           isActive ? activeStyle : "text-slate-100"
         }`}
-        onClick={() => !isActive && navigate(`${id}`)}
+        onClick={() => !isActive && navigate(`chat/${id}`)}
         aria-label={name}
         title={`Click to Chat with ${name}`}
       >
@@ -69,7 +69,7 @@ function Friend({ name, id, last_message, username }) {
           </span>
         </div>
       </div>
-      <center className="">
+      <center className="pt-1">
         <hr width="90%" className="h-1" />
       </center>
     </>
@@ -80,7 +80,7 @@ Friend.propTypes = {
   name: PropTypes.string.isRequired,
   id: PropTypes.string.isRequired,
   last_message: PropTypes.string,
-  username: PropTypes.string.isRequired,
+  username: PropTypes.string,
 };
 
 export default Friend;

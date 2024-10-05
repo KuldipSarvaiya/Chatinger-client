@@ -14,16 +14,14 @@ function FetchProfile({ children }) {
   }, []);
 
   async function fetchProfile() {
-    const token = window.localStorage.getItem("user");
+    const token = window.localStorage.getItem(import.meta.env.VITE_APP_STORAGE_NAME);
     if (!token || Data.isLoggedIn) return;
 
     setLoading(true);
     await axios
       .get("/auth/profile")
       .then((data) => {
-
-        console.clear()
-        console.log("\n\n*********** profile = ",data);
+        console.log("\n\n*********** profile = ", data);
 
         if (!data.data.error) {
           doSignIn({ ...data.data.user, jwt: token });
@@ -44,7 +42,9 @@ function FetchProfile({ children }) {
   if (loading)
     return (
       <div className="grid w-screen h-screen place-content-center">
-        <Loader />
+        <span className="w-12 h-12">
+          <Loader />
+        </span>
       </div>
     );
 

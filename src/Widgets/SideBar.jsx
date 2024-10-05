@@ -1,10 +1,10 @@
 import PropTypes from "prop-types";
 import Friend from "./Friend";
-// import useDatas from "../DataStore/useDatas";
 import { useNavigate } from "react-router-dom";
 import {
   Badge,
   Button,
+  ButtonGroup,
   CircularProgress,
   Dialog,
   IconButton,
@@ -21,11 +21,11 @@ import Diversity1RoundedIcon from "@mui/icons-material/Diversity1Rounded";
 import { useContext, useEffect, useRef, useState } from "react";
 import { Context } from "../ContextProvider";
 import axios from "axios";
+import { PrivacyTipOutlined } from "@mui/icons-material";
 
 function SideBar() {
   console.log("sidebar reloaded");
   const navigate = useNavigate();
-  // const { Data, removeFriendRequest, doSignOut } = useDatas();
   const { Data, addNewChatRoom, removeFriendRequest, doSignOut } =
     useContext(Context);
   const [showModal, setShowModal] = useState(false);
@@ -35,7 +35,7 @@ function SideBar() {
   const groupMessageRef = useRef(null);
 
   useEffect(() => {
-    const token = window.localStorage.getItem("user");
+    const token = window.localStorage.getItem(import.meta.env.VITE_APP_STORAGE_NAME);
     if (!Data.isLoggedIn && !token) navigate("/signin", { replace: true });
   });
 
@@ -97,7 +97,9 @@ function SideBar() {
           display_name: Data.auth.display_name,
         };
         chatroom.members = [me];
-        chatroom.admin = me;
+        chatroom.admin = Data.auth._id;
+        console.log("new group log", chatroom);
+        
         addNewChatRoom(chatroom);
         setShowGroupModal(false);
       }
@@ -129,12 +131,11 @@ function SideBar() {
   return (
     <>
       <div
-        className={`h-full absolute left-0 top-0 pt-12 z-40 bg-yellow-500 w-64 border-r-2 overflow-auto scroll-smooth`}
+        className={`h-full max-h-screen absolute left-0 top-0 pt-12 z-40 bg-yellow-500 w-64 border-r-2 overflow-auto scroll-smooth`}
         style={{ height: "100vh" }}
       >
         {/* user's name and actions */}
-        <div className="bg-green-500 border-b-4 flex flex-row text-sm flex-nowrap justify-stretch items-center pl-2 ">
-          {/* <Avatar /> */}
+        <div className="bg-green-500 border-b-4 mb-1 flex flex-row text-lg flex-nowrap justify-stretch items-center pl-2 ">
           <span
             className="uppercase grow ml-1 font-bold cursor-pointer"
             onClick={() => {
@@ -157,40 +158,63 @@ function SideBar() {
               </Badge>
             </IconButton>
           </Tooltip>
-          <Tooltip title="Sign Out">
-            <IconButton
-              onClick={() => {
-                if (confirm("Are You Sure? You Want To SignOut !?")) {
-                  doSignOut();
-                  navigate("/signin", { replace: true });
-                }
-              }}
-            >
-              <LogoutRoundedIcon />
-            </IconButton>
-          </Tooltip>
         </div>
 
         {/* friend's list */}
-        {Data?.auth?.chatrooms?.reverse()?.map(
-          (chat) =>
-            (chat.members.length > 1 || chat.type === "group") && (
-              <Friend
-                key={chat._id}
-                id={chat._id}
-                name={
-                  chat.display_name ||
-                  chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
-                    .display_name
-                }
-                username={
-                  chat.members.filter((mem) => mem._id !== Data.auth._id)[0]
-                    ?.username
-                }
-                last_message=""
-              />
-            )
-        )}
+        {Data?.auth?.chatrooms
+          ?.sort()
+          ?.map(
+            (chat) =>
+              (chat?.members?.length > 1 || chat?.type === "group") && (
+                <Friend
+                  key={chat._id}
+                  id={chat._id}
+                  name={
+                    chat.display_name ||
+                    chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
+                      .display_name
+                  }
+                  username={
+                    chat.members.filter((mem) => mem._id !== Data.auth._id)[0]
+                      ?.username
+                  }
+                  last_message=""
+                />
+              )
+          )}
+        <div className="absolute grid grid-cols-1 bottom-0 left-0 w-full">
+          <ButtonGroup size="large" variant="contained" color="inherit">
+            <Tooltip title="Privacy Policy">
+              <Button>
+                <IconButton
+                  onClick={() => {
+                    navigate("/privacy-policy");
+                  }}
+                  size="small"
+                >
+                  <PrivacyTipOutlined />
+                  <span className="text-lg font-mono font-semibold">POLICY</span>
+                </IconButton>
+              </Button>
+            </Tooltip>
+            <Tooltip title="Sign Out">
+              <Button>
+                <IconButton
+                  onClick={() => {
+                    if (confirm("Are You Sure? You Want To SignOut !?")) {
+                      doSignOut();
+                      navigate("/signin", { replace: true });
+                    }
+                  }}
+                  size="small"
+                >
+                  <span className="text-lg font-mono font-semibold">SIGNOUT</span>
+                  <LogoutRoundedIcon />
+                </IconButton>
+              </Button>
+            </Tooltip>
+          </ButtonGroup>
+        </div>
       </div>
 
       {/* new friends modal */}
