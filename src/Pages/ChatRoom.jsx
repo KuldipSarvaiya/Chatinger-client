@@ -22,7 +22,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Context } from "../ContextProvider";
 import axios from "axios";
 import UpdateIcon from "@mui/icons-material/Update";
-import { MoreVert } from "@mui/icons-material";
+import { MoreVert, Person } from "@mui/icons-material";
 
 function ChatRoom() {
   const { roomId } = useParams();
@@ -148,6 +148,8 @@ function ChatRoom() {
   }, [roomId]);
 
   async function fetchInvitableFriends() {
+    if (chat?.admin !== Data.auth._id) return;
+
     try {
       const res = await axios.get("/group/members?chatroom_id=" + roomId);
       console.log(
@@ -304,23 +306,34 @@ function ChatRoom() {
                 tooltipTitle={<span>video&nbsp;call</span>}
                 tooltipOpen
               />
-              {chat?.type === "group" ? (
-                chat?.admin === Data.auth._id ? (
-                  <SpeedDialAction
-                    icon={<PersonAddAlt1RoundedIcon />}
-                    tooltipTitle={<span>manage&nbsp;members</span>}
-                    tooltipOpen
-                    onClick={() => setShowGroupModal(true)}
-                  />
-                ) : (
-                  <SpeedDialAction
-                    icon={<LogoutIcon />}
-                    tooltipTitle={<span>leave&nbsp;group</span>}
-                    tooltipOpen
-                    onClick={leaveGroup}
-                  />
-                )
-              ) : (
+              {chat?.type === "group" && (
+                <SpeedDialAction
+                  icon={
+                    chat?.admin === Data.auth._id ? (
+                      <PersonAddAlt1RoundedIcon />
+                    ) : (
+                      <Person />
+                    )
+                  }
+                  tooltipTitle={
+                    <span>
+                      {chat?.admin === Data.auth._id ? "manage" : ""}
+                      &nbsp;members
+                    </span>
+                  }
+                  tooltipOpen
+                  onClick={() => setShowGroupModal(true)}
+                />
+              )}
+              {chat?.type === "group" && chat?.admin !== Data.auth._id && (
+                <SpeedDialAction
+                  icon={<LogoutIcon />}
+                  tooltipTitle={<span>leave&nbsp;group</span>}
+                  tooltipOpen
+                  onClick={leaveGroup}
+                />
+              )}
+              {chat?.type !== "group" && (
                 <SpeedDialAction
                   icon={<PersonRemoveAlt1Icon />}
                   tooltipTitle={<span>remove&nbsp;friend</span>}
@@ -479,54 +492,60 @@ function ChatRoom() {
                 </span>
               ))}
 
-            <br />
-            <br />
+            {chat?.admin === Data.auth._id && (
+              <>
+                <br />
+                <br />
 
-            {/* invite friends list */}
-            {invitableFriends.length > 0 && (
-              <u>
-                <i>Invite Friends To Group</i>
-              </u>
-            )}
-            {invitableFriends.map((item) => (
-              <span
-                key={item._id}
-                className="border-l-[5px] rounded-l-lg border-gray-900/50 flex flex-row justify-between gap-3 items-center px-2 m-1 "
-              >
-                <div className="flex flex-col">
-                  <span className="text-sm font-bold capitalize">
-                    {item.display_name}
-                  </span>
-                  <span className="text-xs font-normal lowercase">
-                    {item.username}
-                  </span>
-                </div>
-                <span className="text-sm font-bold">
-                  <Button
-                    color="secondary"
-                    variant="outlined"
-                    sx={{ padding: "0 4px", margin: 0 }}
-                    onClick={() => manageGroupMember("add", item._id)}
+                {/* invite friends list */}
+                {invitableFriends.length > 0 && (
+                  <u>
+                    <i>Invite Friends To Group</i>
+                  </u>
+                )}
+                {invitableFriends.map((item) => (
+                  <span
+                    key={item._id}
+                    className="border-l-[5px] rounded-l-lg border-gray-900/50 flex flex-row justify-between gap-3 items-center px-2 m-1 "
                   >
-                    Add ➕
-                  </Button>
-                </span>
-              </span>
-            ))}
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold capitalize">
+                        {item.display_name}
+                      </span>
+                      <span className="text-xs font-normal lowercase">
+                        {item.username}
+                      </span>
+                    </div>
+                    <span className="text-sm font-bold">
+                      <Button
+                        color="secondary"
+                        variant="outlined"
+                        sx={{ padding: "0 4px", margin: 0 }}
+                        onClick={() => manageGroupMember("add", item._id)}
+                      >
+                        Add ➕
+                      </Button>
+                    </span>
+                  </span>
+                ))}
+              </>
+            )}
           </span>
 
           {/* delete group button */}
-          <span className="w-full text-center pt-4 mb-2">
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={removeFriend}
-            >
-              <DeleteForeverIcon />
-              &nbsp;Delete Group Permenetly
-            </Button>
-          </span>
+          {chat?.admin === Data.auth._id && (
+            <span className="w-full text-center pt-4 mb-2">
+              <Button
+                variant="contained"
+                color="error"
+                size="small"
+                onClick={removeFriend}
+              >
+                <DeleteForeverIcon />
+                &nbsp;Delete Group Permenetly
+              </Button>
+            </span>
+          )}
         </Paper>
       </Modal>
     </>
