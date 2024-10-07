@@ -19,9 +19,10 @@ function Home() {
           <img
             src="assets/hey_user.svg"
             width={"700px"}
-            height={"auto"} 
+            height={"auto"}
             alt=""
             className="drop-shadow-[0_25px_50px_rgba(255,255,255,1)]"
+            draggable="false"
           />
         )}
       </section>

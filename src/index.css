@@ -48,3 +48,7 @@ body {
   top: -8px; 
   left: 8px;
 }
+
+.chat_nav > div > div > .MuiButtonBase-root {
+  @apply bg-transparent shadow-none p-0 max-sm:mt-[7px] mt-[10px] h-2;
+}

@@ -42,7 +42,10 @@ function ContextProvider({ children }) {
       case "addnewchatroom":
         return {
           ...prevState,
-          auth: {chatrooms: [...prevState.auth.chatrooms, props.new_chatroom],}
+          auth: {
+            ...prevState.auth,
+            chatrooms: [...prevState.auth.chatrooms, props.new_chatroom],
+          },
         };
       case "remove_chatroom":
         return {
@@ -52,19 +55,22 @@ function ContextProvider({ children }) {
             chatrooms: prevState.auth.chatrooms.filter((room) => {
               return props._id !== room._id;
             }),
-            opened_chatrooms: prevState.opened_chatrooms.filter((room) => {
-              return props.chatroom._id !== room._id;
-            }),
           },
+          opened_chatrooms: new Map(
+            Array.from(prevState.opened_chatrooms).filter((room) => {
+              return props._id !== room._id;
+            })
+          ),
         };
       case "removefriendrequest":
         return {
           ...prevState,
           auth: {
             ...prevState.auth,
-            received_friend_requests: prevState.auth.received_friend_requests.filter(
-              (item) => item._id !== props._id
-            ),
+            received_friend_requests:
+              prevState.auth.received_friend_requests.filter(
+                (item) => item._id !== props._id
+              ),
           },
         };
       case "openchatroom":
@@ -93,11 +99,16 @@ function ContextProvider({ children }) {
   // will be used when signing in and complete creating new account
   const doSignIn = (auth) => {
     console.log("im into the doSignIn method");
-console.log(auth);
+    console.log(auth);
 
     // setting default auth for every request
-    axios.defaults.headers.common.Authorization = `Bearer ${auth.jwt}`;
-    window.localStorage.setItem("user", auth.jwt);
+    axios.defaults.headers.common.Authorization = `${
+      import.meta.env.VITE_APP_AUTH_HEADER_TYPE
+    } ${auth.jwt}`;
+    window.localStorage.setItem(
+      import.meta.env.VITE_APP_STORAGE_NAME,
+      auth.jwt
+    );
 
     Dispatch({ type: "signin", auth });
   };
@@ -107,7 +118,8 @@ console.log(auth);
       "\n\n*********im going to reset all state hoooo stop me if you can\n\n"
     );
     // setting default auth for every request
-    axios.defaults.headers.common.Authorization = "Bearer default_header";
+    axios.defaults.headers.common.Authorization =
+      import.meta.env.VITE_APP_AUTH_HEADER_TYPE + " default_header";
     window.localStorage.clear();
 
     Dispatch({ type: "signout" });
@@ -146,7 +158,7 @@ console.log(auth);
         removeFriendRequest,
         openChatRoom,
         setSocket,
-        setInitialState
+        setInitialState,
       }}
     >
       {children}
