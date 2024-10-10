@@ -305,6 +305,7 @@ function ChatRoom() {
                 icon={<VideoChatIcon />}
                 tooltipTitle={<span>video&nbsp;call</span>}
                 tooltipOpen
+                onClick={() => navigate(`/video/${roomId}`)}
               />
               {chat?.type === "group" && (
                 <SpeedDialAction

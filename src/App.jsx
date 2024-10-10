@@ -11,6 +11,7 @@ import { Context } from "./ContextProvider";
 import sendNotification from "./Widgets/sendNotification";
 import FetchProfile from "./Pages/Login/FetchProfile";
 import LoadingChats from "./Widgets/LoadingChats";
+import PrivateVideo from "./Pages/PrivateVideo";
 
 function App() {
   const { Data, setSocket, setInitialState } = useContext(Context);
@@ -60,6 +61,10 @@ function App() {
           <Route
             path="chat/:roomId"
             element={Data.socket ? <ChatRoom /> : <LoadingChats />}
+          />
+          <Route
+            path="video/:videoId"
+            element={Data.socket ? <PrivateVideo /> : <LoadingChats />}
           />
         </Route>
         <Route path="/signin" element={<SignIn />} />
