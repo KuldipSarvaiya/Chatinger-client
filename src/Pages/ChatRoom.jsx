@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Message from "../Widgets/Message";
 import {
   Avatar,
@@ -9,6 +9,7 @@ import {
   Paper,
   SpeedDial,
   SpeedDialAction,
+  Tooltip,
 } from "@mui/material";
 import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
 import { useContext, useEffect, useRef, useState } from "react";
@@ -22,10 +23,11 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Context } from "../ContextProvider";
 import axios from "axios";
 import UpdateIcon from "@mui/icons-material/Update";
-import { MoreVert, Person } from "@mui/icons-material";
+import { ArrowBackIos, MoreVert, Person } from "@mui/icons-material";
 
-function ChatRoom() {
+function ChatRoom({ closeChatRoom }) {
   const { roomId } = useParams();
+  const { pathname } = useLocation();
   const navigate = useNavigate();
   const [msgList, setMsgList] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
@@ -42,14 +44,11 @@ function ChatRoom() {
     chatMembers?.filter(({ _id }) => _id !== Data?.auth?._id)?.[0]
       ?.display_name;
 
-  console.log("chatroom reloaded", roomId, chatMembers);
 
   useEffect(() => {
-    // reset messages when room changed
     if (msgList.length > 0) setMsgList([]);
 
     const messageListener = (message) => {
-      console.log("Message received from server = ", message);
       setMsgList((prev) => [
         ...prev,
         {
@@ -62,10 +61,14 @@ function ChatRoom() {
       scrollDown();
     };
 
+    const answerVideoCall = (data) => {
+      navigate("/video/" + data.roomId);
+    };
+
     if (Data.socket !== null) {
-      console.log(`\n******now i'll try to join ${roomId}`);
       Data.socket.emit("join_room", { room: roomId });
       Data.socket.on("messageToClient", messageListener);
+      Data.socket.on("answer_video_call", answerVideoCall);
 
       Data.socket.emit("retriveMessages", {
         room: roomId,
@@ -78,17 +81,14 @@ function ChatRoom() {
     }
 
     return () => {
-      console.log(`\n********leaving room ${roomId}`);
       Data.socket.off("messageToClient", messageListener);
+      Data.socket.off("answer_video_call", answerVideoCall);
       Data.socket.emit("leave_room", { room: roomId });
     };
   }, [Data.socket, roomId]);
 
-  // effect to load first messages
   useEffect(() => {
     const listMessages = (data) => {
-      console.log("Listing message");
-      console.log(data);
       const convertedData = data.map((item) => {
         return {
           _id: item._id,
@@ -125,7 +125,6 @@ function ChatRoom() {
     };
   }, [Data.socket, roomId]);
 
-  // to fetch invitableFriends
   useEffect(() => {
     if (chat && showGroupModal && invitableFriends.length < 1)
       fetchInvitableFriends();
@@ -152,10 +151,6 @@ function ChatRoom() {
 
     try {
       const res = await axios.get("/group/members?chatroom_id=" + roomId);
-      console.log(
-        chatMembers.map((item) => item._id),
-        res.data.members.map((item) => item._id)
-      );
       if (!res.data.error) setInvitableFriends(res.data?.members);
     } catch (error) {
       console.log(error);
@@ -198,7 +193,6 @@ function ChatRoom() {
         operation_type,
         chatroom_id: roomId,
       });
-      console.log(res);
 
       if (!res.data.error) {
         if (operation_type === "add") {
@@ -218,21 +212,18 @@ function ChatRoom() {
         }
       }
     } catch (error) {
-      console.log(error);
     }
   }
 
   async function removeFriend() {
     try {
       const res = await axios.delete("/friend?chatroom_id=" + roomId);
-      console.log(res);
 
       if (!res.data.error) {
         removeChatRoom(roomId);
         navigate("/", { replace: true });
       }
     } catch (error) {
-      console.log(error);
     }
   }
 
@@ -251,7 +242,6 @@ function ChatRoom() {
         setMsgList([]);
       }
     } catch (error) {
-      console.log(error);
     }
   }
 
@@ -263,7 +253,6 @@ function ChatRoom() {
         navigate("/", { replace: true });
       }
     } catch (error) {
-      console.log(error);
     }
   }
 
@@ -271,92 +260,107 @@ function ChatRoom() {
     <>
       <section className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1">
         {/* friend's detail navbar */}
-        <div className="relative chat_nav p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit">
-          <span className="hidden md:inline">
-            <Avatar
-              variant="circular"
-              sx={{ bgcolor: "transparent", border: "2px dashed black" }}
-            >
-              {name?.indexOf(" ") !== -1
-                ? name?.split(" ")?.[0]?.charAt?.(0) +
-                  name?.split(" ")?.[1]?.charAt(0)
-                : name?.split(" ")?.[0]?.charAt?.(0)}
-            </Avatar>
-          </span>
+        {pathname.includes("chat") ? (
+          <div className="relative chat_nav p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit">
+            <span className="hidden md:inline">
+              <Avatar
+                variant="circular"
+                sx={{ bgcolor: "transparent", border: "2px dashed black" }}
+              >
+                {name?.indexOf(" ") !== -1
+                  ? name?.split(" ")?.[0]?.charAt?.(0) +
+                    name?.split(" ")?.[1]?.charAt(0)
+                  : name?.split(" ")?.[0]?.charAt?.(0)}
+              </Avatar>
+            </span>
 
-          <span className="grow ml-1 -md:text-lg -lg:text-lg whitespace-nowrap">
-            {name}
-          </span>
+            <span className="grow ml-1 -md:text-lg -lg:text-lg whitespace-nowrap">
+              {name}
+            </span>
 
-          <Box
-            sx={{
-              position: "absolute",
-              top: "0px",
-              right: "10px",
-              zIndex: "10",
-            }}
-          >
-            <SpeedDial
-              ariaLabel="SpeedDial playground example"
-              icon={<MoreVert />}
-              direction={"down"}
+            <Box
+              sx={{
+                position: "absolute",
+                top: "0px",
+                right: "10px",
+                zIndex: "10",
+              }}
             >
-              <SpeedDialAction
-                icon={<VideoChatIcon />}
-                tooltipTitle={<span>video&nbsp;call</span>}
-                tooltipOpen
-                onClick={() => navigate(`/video/${roomId}`)}
-              />
-              {chat?.type === "group" && (
+              <SpeedDial
+                ariaLabel="SpeedDial playground example"
+                icon={<MoreVert />}
+                direction={"down"}
+              >
                 <SpeedDialAction
-                  icon={
-                    chat?.admin === Data.auth._id ? (
-                      <PersonAddAlt1RoundedIcon />
-                    ) : (
-                      <Person />
-                    )
-                  }
-                  tooltipTitle={
-                    <span>
-                      {chat?.admin === Data.auth._id ? "manage" : ""}
-                      &nbsp;members
-                    </span>
-                  }
+                  icon={<VideoChatIcon />}
+                  tooltipTitle={<span>video&nbsp;call</span>}
                   tooltipOpen
-                  onClick={() => setShowGroupModal(true)}
+                  onClick={() => navigate(`/video/${roomId}`)}
                 />
-              )}
-              {chat?.type === "group" && chat?.admin !== Data.auth._id && (
+                {chat?.type === "group" && (
+                  <SpeedDialAction
+                    icon={
+                      chat?.admin === Data.auth._id ? (
+                        <PersonAddAlt1RoundedIcon />
+                      ) : (
+                        <Person />
+                      )
+                    }
+                    tooltipTitle={
+                      <span>
+                        {chat?.admin === Data.auth._id ? "manage" : ""}
+                        &nbsp;members
+                      </span>
+                    }
+                    tooltipOpen
+                    onClick={() => setShowGroupModal(true)}
+                  />
+                )}
+                {chat?.type === "group" && chat?.admin !== Data.auth._id && (
+                  <SpeedDialAction
+                    icon={<LogoutIcon />}
+                    tooltipTitle={<span>leave&nbsp;group</span>}
+                    tooltipOpen
+                    onClick={leaveGroup}
+                  />
+                )}
+                {chat?.type !== "group" && (
+                  <SpeedDialAction
+                    icon={<PersonRemoveAlt1Icon />}
+                    tooltipTitle={<span>remove&nbsp;friend</span>}
+                    tooltipOpen
+                    onClick={removeFriend}
+                  />
+                )}
                 <SpeedDialAction
-                  icon={<LogoutIcon />}
-                  tooltipTitle={<span>leave&nbsp;group</span>}
+                  icon={<UpdateIcon />}
+                  tooltipTitle={<span>clear&nbsp;chat</span>}
                   tooltipOpen
-                  onClick={leaveGroup}
+                  onClick={clearChats}
                 />
-              )}
-              {chat?.type !== "group" && (
                 <SpeedDialAction
-                  icon={<PersonRemoveAlt1Icon />}
-                  tooltipTitle={<span>remove&nbsp;friend</span>}
+                  icon={<CloseFullscreenRoundedIcon />}
+                  tooltipTitle={<span>Close&nbsp;Chat</span>}
                   tooltipOpen
-                  onClick={removeFriend}
+                  onClick={() => navigate("/")}
                 />
-              )}
-              <SpeedDialAction
-                icon={<UpdateIcon />}
-                tooltipTitle={<span>clear&nbsp;chat</span>}
-                tooltipOpen
-                onClick={clearChats}
-              />
-              <SpeedDialAction
-                icon={<CloseFullscreenRoundedIcon />}
-                tooltipTitle={<span>Close&nbsp;Chat</span>}
-                tooltipOpen
-                onClick={() => navigate("/")}
-              />
-            </SpeedDial>
-          </Box>
-        </div>
+              </SpeedDial>
+            </Box>
+          </div>
+        ) : (
+          <div className="chat_nav p-2 rounded-lg w-full lg:hidden">
+            <IconButton
+              sx={{
+                color: "white",
+              }}
+              onClick={closeChatRoom}
+            >
+              <Tooltip title="Close Chat">
+                <ArrowBackIos />
+              </Tooltip>
+            </IconButton>
+          </div>
+        )}
 
         {/* message display */}
         <section
@@ -375,7 +379,6 @@ function ChatRoom() {
             </span>
           )}
           {msgList.map((message) => {
-            console.log(message);
 
             return (
               <Message
@@ -480,16 +483,18 @@ function ChatRoom() {
                       {item.username}
                     </span>
                   </div>
-                  <span className="text-sm font-bold">
-                    <Button
-                      color="secondary"
-                      variant="outlined"
-                      sx={{ padding: "0 4px", margin: 0 }}
-                      onClick={() => manageGroupMember("remove", item._id)}
-                    >
-                      Remove Member ❌
-                    </Button>
-                  </span>
+                  {chat?.admin === Data.auth._id && (
+                    <span className="text-sm font-bold">
+                      <Button
+                        color="secondary"
+                        variant="outlined"
+                        sx={{ padding: "0 4px", margin: 0 }}
+                        onClick={() => manageGroupMember("remove", item._id)}
+                      >
+                        Remove Member ❌
+                      </Button>
+                    </span>
+                  )}
                 </span>
               ))}
 

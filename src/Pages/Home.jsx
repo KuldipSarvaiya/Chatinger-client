@@ -1,14 +1,16 @@
-import { Outlet, useParams } from "react-router-dom";
+import { Outlet, useLocation, useParams } from "react-router-dom";
 import NavBar from "../Widgets/NavBar";
 import SideBar from "../Widgets/SideBar";
 
 function Home() {
-  const { roomId, videoId } = useParams();
+  const { roomId } = useParams();
+  const { pathname } = useLocation();
+
   return (
     <>
       <NavBar />
 
-      {videoId ? (
+      {pathname.includes("video") ? (
         <section className="pt-12 w-full message-body">
           <Outlet />
         </section>
