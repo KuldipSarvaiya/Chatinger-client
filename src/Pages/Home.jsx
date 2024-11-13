@@ -25,7 +25,7 @@ function Home() {
               <Outlet />
             ) : (
               <img
-                src="assets/hey_user.svg"
+                src="/assets/hey_user.svg"
                 width={"700px"}
                 height={"auto"}
                 alt=""

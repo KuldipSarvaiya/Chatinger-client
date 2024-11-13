@@ -9,7 +9,8 @@ import {
   RectangleOutlined,
 } from "@mui/icons-material";
 import { IconButton, Tooltip, useMediaQuery, useTheme } from "@mui/material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import PropTypes from "prop-types";
 
 function GroupVideo({ myvideo, videoRoomId }) {
   const { Data } = useContext(Context);
@@ -18,13 +19,23 @@ function GroupVideo({ myvideo, videoRoomId }) {
   const [selectedVideo, setSelectedVideo] = useState(myvideo);
   const [fullVideo, setfullVideo] = useState(true);
   const theme = useTheme();
-  const isBigScreen = useMediaQuery(theme.breakpoints.up('md'))
+  const isBigScreen = useMediaQuery(theme.breakpoints.up("md"));
   const [showChats, setShowChats] = useState(isBigScreen);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const stream_ids = [];
+  const chat = Data?.auth?.chatrooms?.find(({ _id }) => _id === videoRoomId);
+  const name =
+    chat?.display_name ||
+    chat.members?.filter(({ _id }) => _id !== Data?.auth?._id)?.[0]
+      ?.display_name;
 
   React.useEffect(() => {
-    Data.socket.emit("join_video_call", { room: videoRoomId });
+    if (!searchParams.get("join"))
+      Data.socket.emit("join_video_call", {
+        room: videoRoomId,
+        display_name: name,
+      });
   }, []);
 
   React.useEffect(() => {
@@ -38,12 +49,16 @@ function GroupVideo({ myvideo, videoRoomId }) {
         iceServers: [
           {
             urls: [
-              import.meta.env.VITE_APP_STUN_SERVER_1,
-              import.meta.env.VITE_APP_STUN_SERVER_2,
+              import.meta.env.VITE_APP_STUN_SERVER_1
             ],
           },
         ],
       },
+      retry_options: {
+        retries: 3,
+        minTimeout: 1000,
+        maxTimeout: 5000,
+      }
     });
     setPeer(newPeer);
 
@@ -228,6 +243,7 @@ function GroupVideo({ myvideo, videoRoomId }) {
                   if (el) el.srcObject = Object.values(stream)[0];
                 }}
                 autoPlay
+                disablePictureInPicture={true}
                 className="w-40 h-30 object-cover rounded-sm cursor-pointer"
                 onClick={() => setSelectedVideo(Object.values(stream)[0])}
               />
@@ -245,5 +261,10 @@ function GroupVideo({ myvideo, videoRoomId }) {
     </section>
   );
 }
+
+GroupVideo.propTypes = {
+  myvideo: PropTypes.object.isRequired,
+  videoRoomId: PropTypes.string.isRequired,
+};
 
 export default GroupVideo;

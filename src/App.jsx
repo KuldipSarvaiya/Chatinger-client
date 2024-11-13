@@ -31,13 +31,11 @@ function App() {
     socket.current.on("connect", () => {
       console.log("Connected to the socket server!");
       setSocket(socket.current);
-      if (Data.socket)
-        sendNotification("Chatinger", "You'r All Set For Hot Chats");
     });
 
     socket.current.on("disconnect", () => {
       console.log("Disconnected from the socket server!");
-      sendNotification("Chatinger", "Please Come Back soon");
+      sendNotification("Chatinger", "Please Come Back sooner");
     });
 
     return () => {
@@ -64,6 +62,10 @@ function App() {
           />
           <Route
             path="video/:roomId"
+            element={Data.socket ? <VideoChat /> : <LoadingChats />}
+          />
+          <Route
+            path="/random-video-call"
             element={Data.socket ? <VideoChat /> : <LoadingChats />}
           />
         </Route>

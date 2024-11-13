@@ -1,6 +1,6 @@
 import PropTypes from "prop-types";
 import Friend from "./Friend";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Badge,
   Button,
@@ -21,9 +21,9 @@ import Diversity1RoundedIcon from "@mui/icons-material/Diversity1Rounded";
 import { useContext, useEffect, useRef, useState } from "react";
 import { Context } from "../ContextProvider";
 import axios from "axios";
-import { PrivacyTipOutlined } from "@mui/icons-material";
+import { PrivacyTipOutlined, VideoChat } from "@mui/icons-material";
 
-function SideBar() {
+function SideBar({ hideSidebar }) {
   console.log("sidebar reloaded");
   const navigate = useNavigate();
   const { Data, addNewChatRoom, removeFriendRequest, doSignOut } =
@@ -33,9 +33,12 @@ function SideBar() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchedFriendsList, setSearchedFriendsList] = useState(undefined);
   const groupMessageRef = useRef(null);
+  const { pathname } = useLocation();
 
   useEffect(() => {
-    const token = window.localStorage.getItem(import.meta.env.VITE_APP_STORAGE_NAME);
+    const token = window.localStorage.getItem(
+      import.meta.env.VITE_APP_STORAGE_NAME
+    );
     if (!Data.isLoggedIn && !token) navigate("/signin", { replace: true });
   });
 
@@ -99,7 +102,7 @@ function SideBar() {
         chatroom.members = [me];
         chatroom.admin = Data.auth._id;
         console.log("new group log", chatroom);
-        
+
         addNewChatRoom(chatroom);
         setShowGroupModal(false);
       }
@@ -128,10 +131,12 @@ function SideBar() {
     }
   }
 
+  if (pathname.includes("video")) return <></>;
+
   return (
     <>
       <div
-        className={`h-full max-h-screen absolute left-0 top-0 pt-12 z-40 bg-yellow-500 w-64 border-r-2 overflow-auto scroll-smooth`}
+        className={`h-full max-h-screen absolute left-0 top-0 pt-12 z-40 bg-yellow-500 w-64 border-r-2 overflow-auto scroll-smooth pb-14`}
         style={{ height: "100vh" }}
       >
         {/* user's name and actions */}
@@ -160,6 +165,18 @@ function SideBar() {
           </Tooltip>
         </div>
 
+        <div className="mt-3 w-full h-fit text-center">
+          <Link to={"random-video-call"} className="h-fit w-full">
+            <span className="py-2 px-4 bg-purple-500 rounded-lg font-semibold shadow-sm shadow-purple-500">
+              <VideoChat />
+              <span> Random Video Call</span>
+            </span>
+          </Link>
+          <center className="pt-1 mt-1">
+            <hr width="90%" className="h-1" />
+          </center>
+        </div>
+
         {/* friend's list */}
         {Data?.auth?.chatrooms
           ?.sort()
@@ -169,6 +186,7 @@ function SideBar() {
                 <Friend
                   key={chat._id}
                   id={chat._id}
+                  hideSidebar={hideSidebar ? hideSidebar : () => {}}
                   name={
                     chat.display_name ||
                     chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
@@ -182,18 +200,21 @@ function SideBar() {
                 />
               )
           )}
-        <div className="absolute grid grid-cols-1 bottom-0 left-0 w-full">
+        <div className="fixed grid grid-cols-1 bottom-0 left-0 w-64">
           <ButtonGroup size="large" variant="contained" color="inherit">
             <Tooltip title="Privacy Policy">
               <Button>
                 <IconButton
                   onClick={() => {
+                    hideSidebar && hideSidebar();
                     navigate("/privacy-policy");
                   }}
                   size="small"
                 >
                   <PrivacyTipOutlined />
-                  <span className="text-lg font-mono font-semibold">POLICY</span>
+                  <span className="text-lg font-mono font-semibold">
+                    POLICY
+                  </span>
                 </IconButton>
               </Button>
             </Tooltip>
@@ -202,13 +223,16 @@ function SideBar() {
                 <IconButton
                   onClick={() => {
                     if (confirm("Are You Sure? You Want To SignOut !?")) {
+                      hideSidebar && hideSidebar();
                       doSignOut();
                       navigate("/signin", { replace: true });
                     }
                   }}
                   size="small"
                 >
-                  <span className="text-lg font-mono font-semibold">SIGNOUT</span>
+                  <span className="text-lg font-mono font-semibold">
+                    SIGNOUT
+                  </span>
                   <LogoutRoundedIcon />
                 </IconButton>
               </Button>
@@ -455,7 +479,7 @@ function SideBar() {
 }
 
 SideBar.propTypes = {
-  show: PropTypes.bool,
+  hideSidebar: PropTypes.func,
 };
 
 export default SideBar;

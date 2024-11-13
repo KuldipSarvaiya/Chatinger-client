@@ -20,9 +20,38 @@ function SignIn() {
 
   useEffect(() => {
     if (Data.isLoggedIn) {
-      navigate("/");
+      return navigate("/");
     }
+
+    fetchProfile();
   }, []);
+
+  async function fetchProfile() {
+    const token = window.localStorage.getItem(
+      import.meta.env.VITE_APP_STORAGE_NAME
+    );
+    if (!token) return;
+
+    setLoading(true);
+    await axios
+      .get("/auth/profile")
+      .then((data) => {
+        console.log("\n\n*********** profile = ", data);
+
+        if (!data.data.error) {
+          setLoading(false);
+          doSignIn({ ...data.data.user, jwt: token });
+          navigate("/");
+        }
+      })
+      .catch((err) => {
+        setLoading(false);
+        console.log(err);
+      })
+      .finally(() => {
+        if (loading) setLoading(false);
+      });
+  }
 
   async function handleSubmitSignin(data) {
     console.log(data);

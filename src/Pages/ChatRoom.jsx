@@ -24,6 +24,8 @@ import { Context } from "../ContextProvider";
 import axios from "axios";
 import UpdateIcon from "@mui/icons-material/Update";
 import { ArrowBackIos, MoreVert, Person } from "@mui/icons-material";
+import { PropTypes } from "prop-types";
+import MessageNotification from "../Widgets/MessageNotification";
 
 function ChatRoom({ closeChatRoom }) {
   const { roomId } = useParams();
@@ -31,6 +33,7 @@ function ChatRoom({ closeChatRoom }) {
   const navigate = useNavigate();
   const [msgList, setMsgList] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
+  const [msgAlert, setMsgAlert] = useState(false);
   const [invitableFriends, setInvitableFriends] = useState([]);
   const msg = useRef(null);
   const lastKeyPressed = useRef(null);
@@ -44,11 +47,11 @@ function ChatRoom({ closeChatRoom }) {
     chatMembers?.filter(({ _id }) => _id !== Data?.auth?._id)?.[0]
       ?.display_name;
 
-
   useEffect(() => {
     if (msgList.length > 0) setMsgList([]);
 
     const messageListener = (message) => {
+      if (message.room !== roomId) return setMsgAlert(message);
       setMsgList((prev) => [
         ...prev,
         {
@@ -62,7 +65,15 @@ function ChatRoom({ closeChatRoom }) {
     };
 
     const answerVideoCall = (data) => {
-      navigate("/video/" + data.roomId);
+      console.log(data);
+      
+      setMsgAlert({
+        type: "video_call",
+        display_name: data.display_name,
+        roomId: data.roomId,
+        message: "video call started",
+      });
+      // navigate("/video/" + data.roomId);
     };
 
     if (Data.socket !== null) {
@@ -82,8 +93,8 @@ function ChatRoom({ closeChatRoom }) {
 
     return () => {
       Data.socket.off("messageToClient", messageListener);
-      Data.socket.off("answer_video_call", answerVideoCall);
-      Data.socket.emit("leave_room", { room: roomId });
+      // Data.socket.off("answer_video_call", answerVideoCall);
+      // Data.socket.emit("leave_room", { room: roomId });
     };
   }, [Data.socket, roomId]);
 
@@ -212,6 +223,7 @@ function ChatRoom({ closeChatRoom }) {
         }
       }
     } catch (error) {
+      console.error(error);
     }
   }
 
@@ -224,6 +236,7 @@ function ChatRoom({ closeChatRoom }) {
         navigate("/", { replace: true });
       }
     } catch (error) {
+      console.error(error);
     }
   }
 
@@ -242,6 +255,7 @@ function ChatRoom({ closeChatRoom }) {
         setMsgList([]);
       }
     } catch (error) {
+      console.error(error);
     }
   }
 
@@ -253,6 +267,7 @@ function ChatRoom({ closeChatRoom }) {
         navigate("/", { replace: true });
       }
     } catch (error) {
+      console.error(error);
     }
   }
 
@@ -371,7 +386,7 @@ function ChatRoom({ closeChatRoom }) {
           {msgList.length < 1 && (
             <span className="flex-1 grid place-content-center">
               <img
-                src="assets/message_notification.png"
+                src="/assets/message_notification.png"
                 alt=""
                 className="drop-shadow-[0_25px_50px_rgba(255,255,255,1)] z-0"
                 draggable="false"
@@ -379,7 +394,6 @@ function ChatRoom({ closeChatRoom }) {
             </span>
           )}
           {msgList.map((message) => {
-
             return (
               <Message
                 key={message._id}
@@ -413,6 +427,11 @@ function ChatRoom({ closeChatRoom }) {
           </button>
         </span>
       </section>
+
+      {/* message notification */}
+      {msgAlert && (
+        <MessageNotification msgAlert={msgAlert} setMsgAlert={setMsgAlert} />
+      )}
 
       {/* group member managing dialog */}
       <Modal open={showGroupModal} onClose={() => setShowGroupModal(false)}>
@@ -557,5 +576,9 @@ function ChatRoom({ closeChatRoom }) {
     </>
   );
 }
+
+ChatRoom.propTypes = {
+  closeChatRoom: PropTypes.func,
+};
 
 export default ChatRoom;

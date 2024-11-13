@@ -11,6 +11,7 @@ import {
 import { IconButton, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import Loader from "../../Widgets/Loader";
+import PropTypes from "prop-types";
 
 function PrivateVideo({ myvideo, videoRoomId }) {
   const { Data } = useContext(Context);
@@ -21,6 +22,13 @@ function PrivateVideo({ myvideo, videoRoomId }) {
   const isBigScreen = useMediaQuery(theme.breakpoints.up("lg"));
   const [showChats, setShowChats] = useState(isBigScreen);
   const navigate = useNavigate();
+  const chat = Data?.auth?.chatrooms?.find(
+    ({ _id }) => _id === videoRoomId
+  );
+  const name =
+    chat?.display_name ||
+    chat.members?.filter(({ _id }) => _id !== Data?.auth?._id)?.[0]
+    ?.display_name;
 
   React.useEffect(() => {
     if (!Data.socket) return navigate("/");
@@ -29,7 +37,10 @@ function PrivateVideo({ myvideo, videoRoomId }) {
       navigate("/chat/" + videoRoomId, { replace: true });
     };
 
-    Data.socket.emit("join_video_call", { room: videoRoomId });
+    Data.socket.emit("join_video_call", {
+      room: videoRoomId,
+      display_name: name,
+    });
     Data.socket.on("end_private_video_call", leaveVideoCall);
 
     return () => {
@@ -48,16 +59,20 @@ function PrivateVideo({ myvideo, videoRoomId }) {
         iceServers: [
           {
             urls: [
-              import.meta.env.VITE_APP_STUN_SERVER_1,
-              import.meta.env.VITE_APP_STUN_SERVER_2,
+              import.meta.env.VITE_APP_STUN_SERVER_1
             ],
           },
         ],
       },
+      retry_options: {
+        retries: 3,
+        minTimeout: 1000,
+        maxTimeout: 5000,
+      }
     });
     setPeer(newPeer);
 
-    newPeer.on("open", (id) => {
+    newPeer.on("open", () => {
       newPeer.on("call", (call) => {
         call.answer(myvideo);
         call.on("stream", (incomingStream) => {
@@ -178,6 +193,7 @@ function PrivateVideo({ myvideo, videoRoomId }) {
                   if (el) el.srcObject = myvideo;
                 }}
                 autoPlay
+                disablePictureInPicture={true}
                 className="w-40 h-30 object-cover rounded-sm cursor-pointer"
               />
             </div>
@@ -201,5 +217,10 @@ function PrivateVideo({ myvideo, videoRoomId }) {
     </section>
   );
 }
+
+PrivateVideo.propTypes = {
+  myvideo: PropTypes.object.isRequired,
+  videoRoomId: PropTypes.string.isRequired,
+};
 
 export default PrivateVideo;
