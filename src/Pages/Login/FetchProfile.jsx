@@ -15,7 +15,8 @@ function FetchProfile({ children }) {
 
   async function fetchProfile() {
     const token = window.localStorage.getItem(import.meta.env.VITE_APP_STORAGE_NAME);
-    if (!token || Data.isLoggedIn) return;
+    if (!token) navigate("/signin")
+    if (Data.isLoggedIn) return;
 
     setLoading(true);
     await axios

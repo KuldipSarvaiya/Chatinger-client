@@ -11,6 +11,7 @@ import { Context } from "./ContextProvider";
 import sendNotification from "./Widgets/sendNotification";
 import FetchProfile from "./Pages/Login/FetchProfile";
 import LoadingChats from "./Widgets/LoadingChats";
+import VideoChat from "./Pages/videocall/VideoChat";
 
 function App() {
   const { Data, setSocket, setInitialState } = useContext(Context);
@@ -30,13 +31,11 @@ function App() {
     socket.current.on("connect", () => {
       console.log("Connected to the socket server!");
       setSocket(socket.current);
-      if (Data.socket)
-        sendNotification("Chatinger", "You'r All Set For Hot Chats");
     });
 
     socket.current.on("disconnect", () => {
       console.log("Disconnected from the socket server!");
-      sendNotification("Chatinger", "Please Come Back soon");
+      sendNotification("Chatinger", "Please Come Back sooner");
     });
 
     return () => {
@@ -60,6 +59,14 @@ function App() {
           <Route
             path="chat/:roomId"
             element={Data.socket ? <ChatRoom /> : <LoadingChats />}
+          />
+          <Route
+            path="video/:roomId"
+            element={Data.socket ? <VideoChat /> : <LoadingChats />}
+          />
+          <Route
+            path="/random-video-call"
+            element={Data.socket ? <VideoChat /> : <LoadingChats />}
           />
         </Route>
         <Route path="/signin" element={<SignIn />} />

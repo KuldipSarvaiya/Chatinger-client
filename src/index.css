@@ -5,6 +5,9 @@
 body {
   @apply bg-gray-900 text-slate-300 relative;
 }
+html {
+  cursor: url("/cursor.svg"), auto !important;
+}
 
 .message-body {
   height: 100vh;

@@ -1,0 +1,9 @@
+<svg version="1.2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20">
+	<title>cursor</title>
+	<defs>
+		<image  width="18" height="23" id="img1" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAAXCAMAAAAx3e/WAAAAAXNSR0IB2cksfwAAAOFQTFRFAAAAAAAAAAAAAAAAdnZ2mJiYGBgYAAAAAAAA+vr6////0NDQIyMjAAAAAAAA5OTkNzc3AAAA7u7uREREAAAA+Pj4W1tbAAAA/v7+d3d3AAAAk5OTBQUFra2tEBAQwMDAGBgYAAAA1NTUJycnAAAA5eXlNzc37u7u9/f3UlJSAAAA0NDQAAAArq6uSkpKAAAA09PTnp6ednZ2VFRUMDAwBQUFAAAAAAAAAAAAm5ubCQkJAAAA+fn5ZWVlAAAA6+vrRkZGAAAAAAAA0dHRKCgoAAAAAAAAbGxsioqKFRUVAAAA7Hj+HgAAAEt0Uk5TABQeMPf7lAF7///9tQaA/tMP/+Yd//Mu//g++1r8ffydAv29CP7U/v/vDvxO+ukQ/fv85r6AVS0D+24f//Y//uUgef3BCyv3+o8SPgqVnAAAAJVJREFUeJxl0MUSwkAURNFBA40OEBwCwd09uPP/H0SxSTGdtzyLV11XCJdb0Hm8Pr+mUiCIUDiiUBRALC6ZkEimmKCnM0zI5vJMQKHoIJTKDoJRqTLBrNWZ0GhKJrR+A1VCu9NlQq+vkm4OhiObxpPpbL5Yrtb2r812pynrrf2BShxP5/9eFwvX212p+ni+3tReyA/BFw4sEhjIdJJXAAAAAElFTkSuQmCC"/>
+	</defs>
+	<style>
+	</style>
+	<use id="Background" href="#img1" x="4" y="1"/>
+</svg>

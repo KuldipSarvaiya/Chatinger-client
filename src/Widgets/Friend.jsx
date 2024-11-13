@@ -31,7 +31,7 @@ const alphabetColors = {
   z: "#2563EB",
 };
 
-function Friend({ name, id, last_message, username }) {
+function Friend({ name, id, last_message, username, hideSidebar }) {
   const activeStyle =
     "border-l-4 border-emerald-600 bg-emerald-200 text-slate-600";
 
@@ -45,7 +45,12 @@ function Friend({ name, id, last_message, username }) {
         className={`cursor-pointer py-1 pl-3 flex gap-3 flex-row flex-nowrap justify-start content-center  ${
           isActive ? activeStyle : "text-slate-100"
         }`}
-        onClick={() => !isActive && navigate(`chat/${id}`)}
+        onClick={() => {
+          if (!isActive) {
+            hideSidebar && hideSidebar()
+            navigate(`chat/${id}`);
+          }
+        }}
         aria-label={name}
         title={`Click to Chat with ${name}`}
       >
@@ -81,6 +86,7 @@ Friend.propTypes = {
   id: PropTypes.string.isRequired,
   last_message: PropTypes.string,
   username: PropTypes.string,
+  hideSidebar: PropTypes.func
 };
 
 export default Friend;

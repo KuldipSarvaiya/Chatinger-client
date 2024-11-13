@@ -24,7 +24,7 @@ function SignUp() {
       setError("username", { message: "use atleast 5 to 50 characters" });
       return;
     }
-    
+
     if (/\s/.test(data.username)) {
       setError("username", { message: "no whitespace character is allowed" });
       return;
@@ -49,20 +49,48 @@ function SignUp() {
       } catch (error) {
         console.log(error);
         setError("password", {
-          message: "Failed to signup, please try again"
+          message: "Failed to signup, please try again",
         });
-      }
-      finally {
-        setLoading(false)
+      } finally {
+        setLoading(false);
       }
     }
   }
 
   useEffect(() => {
     if (Data.isLoggedIn) {
-      navigate("/");
+      return navigate("/");
     }
+
+    fetchProfile();
   }, []);
+
+  async function fetchProfile() {
+    const token = window.localStorage.getItem(
+      import.meta.env.VITE_APP_STORAGE_NAME
+    );
+    if (!token) return;
+
+    setLoading(true);
+    await axios
+      .get("/auth/profile")
+      .then((data) => {
+        console.log("\n\n*********** profile = ", data);
+
+        if (!data.data.error) {
+          setLoading(false);
+          doSignIn({ ...data.data.user, jwt: token });
+          navigate("/");
+        }
+      })
+      .catch((err) => {
+        setLoading(false);
+        console.log(err);
+      })
+      .finally(() => {
+        if (loading) setLoading(false);
+      });
+  }
 
   return (
     <div className="flex flex-col flex-nowrap gap-2 justify-evenly py-5 items-center w-96 bg-white text-slate-700 p-6 max-sm:p-4  rounded-md fixed top-1/2 left-1/2 -translate-y-1/2 -translate-x-1/2">
