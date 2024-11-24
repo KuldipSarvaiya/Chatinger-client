@@ -23,9 +23,10 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Context } from "../ContextProvider";
 import axios from "axios";
 import UpdateIcon from "@mui/icons-material/Update";
-import { ArrowBackIos, MoreVert, Person } from "@mui/icons-material";
+import { ArrowBackIos, MoreVert, Person, Visibility, VisibilityOff } from "@mui/icons-material";
 import { PropTypes } from "prop-types";
 import MessageNotification from "../Widgets/MessageNotification";
+import Loader from "../Widgets/Loader";
 
 function ChatRoom({ closeChatRoom }) {
   const { roomId } = useParams();
@@ -34,13 +35,17 @@ function ChatRoom({ closeChatRoom }) {
   const [msgList, setMsgList] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [msgAlert, setMsgAlert] = useState(false);
+  const [ghostMode, setGhostMode] = useState(false);
   const [invitableFriends, setInvitableFriends] = useState([]);
   const msg = useRef(null);
   const lastKeyPressed = useRef(null);
   const messagesRef = useRef(null);
   const oldMessagesFetched = useRef(false);
+  const pagination = useRef({ skip: 0, take: 10 });
+  const loaderRef = useRef(null);
   const { Data, removeChatRoom } = useContext(Context);
   const [chatMembers, setChatMembers] = useState([]);
+  const [totalMessages, setTotalMessages] = useState(0);
   const chat = Data?.auth?.chatrooms?.filter(({ _id }) => _id === roomId)[0];
   const name =
     chat?.display_name ||
@@ -66,7 +71,7 @@ function ChatRoom({ closeChatRoom }) {
 
     const answerVideoCall = (data) => {
       console.log(data);
-      
+
       setMsgAlert({
         type: "video_call",
         display_name: data.display_name,
@@ -85,8 +90,8 @@ function ChatRoom({ closeChatRoom }) {
         room: roomId,
         payload: {
           chatroom_id: roomId,
-          skip: 0,
-          take: 100,
+          skip: pagination.current.skip,
+          take: pagination.current.take,
         },
       });
     }
@@ -100,36 +105,52 @@ function ChatRoom({ closeChatRoom }) {
 
   useEffect(() => {
     const listMessages = (data) => {
-      const convertedData = data.map((item) => {
-        return {
-          _id: item._id,
-          message: item.text,
-          isMyMessage: item.sent_by._id === Data.auth._id,
-          deliveredAt: item.deliveredAt,
-          sent_by: item.sent_by.display_name,
-        };
-      });
-      if (!oldMessagesFetched.current) {
-        setMsgList((prev) => [...prev, ...convertedData]);
-        scrollDown();
+      console.log("messages received - ", data, pagination);
+      if (totalMessages !== data.totalMessages)
+        setTotalMessages(data.totalMessages);
+
+      const current_messages_id = msgList?.map(({ _id }) => _id) || [[]];
+      const convertedData = data.messages
+        .filter(({ _id }) => !current_messages_id.includes(_id))
+        .map((item) => {
+          return {
+            _id: item._id,
+            message: item.text,
+            isMyMessage: item.sent_by._id === Data.auth._id,
+            deliveredAt: item.deliveredAt,
+            sent_by: item.sent_by.display_name,
+          };
+        });
+      if (!oldMessagesFetched.current || pagination.current.skip > 0) {
+        if(data.pagination.skip === pagination.current.skip){
+          console.log("messages setting");
+          setMsgList((prev) => [...convertedData, ...prev]);
+          pagination.current.skip =
+          pagination.current.skip +
+          Math.min(pagination.current.take, convertedData.length);
+          scrollDown();
+          oldMessagesFetched.current = true;
+        }
       }
-      oldMessagesFetched.current = true;
     };
 
     if (Data.socket) {
       Data.socket.on("listMessages", listMessages);
-      if (oldMessagesFetched.current === false)
+      if (oldMessagesFetched.current === false) {
         Data.socket.emit("retriveMessages", {
           room: roomId,
           payload: {
             chatroom_id: roomId,
-            skip: 0,
-            take: 100,
+            skip: pagination.current.skip,
+            take: pagination.current.take,
           },
         });
+      }
     }
 
     return () => {
+      pagination.current.skip = 0;
+      pagination.current.take = 10;
       Data.socket.off("listMessages", listMessages);
       oldMessagesFetched.current = false;
       setMsgList([]);
@@ -157,6 +178,28 @@ function ChatRoom({ closeChatRoom }) {
     };
   }, [roomId]);
 
+  // pagination observer
+  useEffect(() => {
+    if (!loaderRef.current || !messagesRef.current) return;
+
+    const observerCallback = (entries) => {
+      const [entry] = entries;
+      if (entry.isIntersecting) {
+        loadMoreMessages();
+      }
+    };
+
+    const observer = new IntersectionObserver(observerCallback);
+
+    observer.observe(loaderRef.current);
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [loaderRef.current, messagesRef.current, loadMoreMessages]);
+
   async function fetchInvitableFriends() {
     if (chat?.admin !== Data.auth._id) return;
 
@@ -176,6 +219,7 @@ function ChatRoom({ closeChatRoom }) {
       message: msg.current.value,
       sent_by: Data.auth._id,
       display_name: Data.auth.display_name,
+      do_not_send_message : ghostMode ? 'yes' : 'no'
     });
 
     setMsgList((prev) => [
@@ -244,12 +288,13 @@ function ChatRoom({ closeChatRoom }) {
     try {
       const res = await axios.delete("/friend/clear_chats/" + roomId);
       if (!res.data.error) {
+        pagination.current.skip = 0;
         Data.socket.emit("retriveMessages", {
           room: roomId,
           payload: {
             chatroom_id: roomId,
-            skip: 0,
-            take: 100,
+            skip: pagination.current.skip,
+            take: pagination.current.take,
           },
         });
         setMsgList([]);
@@ -269,6 +314,21 @@ function ChatRoom({ closeChatRoom }) {
     } catch (error) {
       console.error(error);
     }
+  }
+
+  function loadMoreMessages() {
+    if (!oldMessagesFetched.current) return;
+    console.log("load more", pagination.current);
+    // oldMessagesFetched.current = false
+
+    Data.socket.emit("retriveMessages", {
+      room: roomId,
+      payload: {
+        chatroom_id: roomId,
+        skip: pagination.current.skip,
+        take: pagination.current.take,
+      },
+    });
   }
 
   return (
@@ -306,6 +366,12 @@ function ChatRoom({ closeChatRoom }) {
                 icon={<MoreVert />}
                 direction={"down"}
               >
+                <SpeedDialAction
+                  icon={ghostMode ? <VisibilityOff /> : <Visibility />}
+                  tooltipTitle={<span>{ghostMode ? 'deactivate' : 'activate'}&nbsp;Ghost&nbsp;Mode</span>}
+                  tooltipOpen
+                  onClick={() => setGhostMode(prev => !prev)}
+                />
                 <SpeedDialAction
                   icon={<VideoChatIcon />}
                   tooltipTitle={<span>video&nbsp;call</span>}
@@ -392,6 +458,19 @@ function ChatRoom({ closeChatRoom }) {
                 draggable="false"
               />
             </span>
+          )}
+          {msgList.length === totalMessages && msgList.length > 0 && (
+            <div className="w-full grid h-12 p-2 py-2 place-content-center">✋ Chat is just started..</div> 
+          )}
+          {msgList.length < totalMessages && msgList.length > 0 && pagination.current.skip > 0 && (
+            <div
+              ref={loaderRef}
+              className="w-full grid h-12 p-2 py-2 place-content-center"
+            >
+              <span className="w-10 h-10">
+                <Loader />
+              </span>
+            </div>
           )}
           {msgList.map((message) => {
             return (

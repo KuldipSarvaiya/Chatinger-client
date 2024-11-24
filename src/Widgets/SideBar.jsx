@@ -136,11 +136,11 @@ function SideBar({ hideSidebar }) {
   return (
     <>
       <div
-        className={`h-full max-h-screen absolute left-0 top-0 pt-12 z-40 bg-yellow-500 w-64 border-r-2 overflow-auto scroll-smooth pb-14`}
+        className={`h-full max-h-screen absolute left-0 top-0 pt-12 z-40 bg-yellow-500 w-64 border-r-2 overflow-hidden`}
         style={{ height: "100vh" }}
       >
         {/* user's name and actions */}
-        <div className="bg-green-500 border-b-4 mb-1 flex flex-row text-lg flex-nowrap justify-stretch items-center pl-2 ">
+        <div className="bg-green-500 border-b-4 flex flex-row text-lg flex-nowrap justify-stretch items-center pl-2 sticky top-0 left-0 z-10">
           <span
             className="uppercase grow ml-1 font-bold cursor-pointer"
             onClick={() => {
@@ -165,62 +165,64 @@ function SideBar({ hideSidebar }) {
           </Tooltip>
         </div>
 
-        <div className="mt-3 w-full h-fit text-center">
-          <Link to={"random-video-call"} className="h-fit w-full">
-            <span className="py-2 px-4 bg-purple-500 rounded-lg font-semibold shadow-sm shadow-purple-500">
-              <VideoChat />
-              <span> Random Video Call</span>
-            </span>
-          </Link>
-          <center className="pt-1 mt-1">
-            <hr width="90%" className="h-1" />
-          </center>
-        </div>
+        <div className="scroll-smooth overflow-y-auto overflow-x-hidden h-full pb-24">
+          <div className="mt-3 h-fit text-center">
+            <Link to={"random-video-call"}>
+              <span className="w-full py-2 px-4 bg-purple-500 rounded-md font-semibold hover:bg-purple-600 transition-colors duration-150">
+                <VideoChat />
+                <span> Random Video Call</span>
+              </span>
+            </Link>
+            <center className="pt-1 mt-1">
+              <hr width="90%" className="h-1" />
+            </center>
+          </div>
 
-        {/* friend's list */}
-        {Data?.auth?.chatrooms
-          ?.sort()
-          ?.map(
-            (chat) =>
-              (chat?.members?.length > 1 || chat?.type === "group") && (
-                <Friend
-                  key={chat._id}
-                  id={chat._id}
-                  hideSidebar={hideSidebar ? hideSidebar : () => {}}
-                  name={
-                    chat.display_name ||
-                    chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
-                      .display_name
-                  }
-                  username={
-                    chat.members.filter((mem) => mem._id !== Data.auth._id)[0]
-                      ?.username
-                  }
-                  last_message=""
-                />
-              )
-          )}
-        <div className="fixed grid grid-cols-1 bottom-0 left-0 w-64">
-          <ButtonGroup size="large" variant="contained" color="inherit">
-            <Tooltip title="Privacy Policy">
-              <Button>
-                <IconButton
+          {/* friend's list */}
+          {Data?.auth?.chatrooms
+            ?.sort()
+            ?.map(
+              (chat) =>
+                (chat?.members?.length > 1 || chat?.type === "group") && (
+                  <Friend
+                    key={chat._id}
+                    id={chat._id}
+                    hideSidebar={hideSidebar ? hideSidebar : () => {}}
+                    name={
+                      chat.display_name ||
+                      chat.members.filter(({ _id }) => _id !== Data.auth._id)[0]
+                        .display_name
+                    }
+                    username={
+                      chat.members.filter((mem) => mem._id !== Data.auth._id)[0]
+                        ?.username
+                    }
+                    last_message=""
+                  />
+                )
+            )}
+          <div className="fixed bottom-0 grid grid-cols-1 w-[255px] p-1">
+            <ButtonGroup size="large" variant="contained">
+              <Tooltip title="Privacy Policy">
+                <Button
                   onClick={() => {
                     hideSidebar && hideSidebar();
                     navigate("/privacy-policy");
                   }}
-                  size="small"
+                  sx={{
+                    backgroundColor: "#22c55e",
+                    ":hover": { backgroundColor: "#16a34a" },
+                    transition: "all 0.15s ease-in-out",
+                  }}
+                  size="large"
+                  startIcon={<PrivacyTipOutlined />}
+                  className="font-mono font-semibold"
                 >
-                  <PrivacyTipOutlined />
-                  <span className="text-lg font-mono font-semibold">
-                    POLICY
-                  </span>
-                </IconButton>
-              </Button>
-            </Tooltip>
-            <Tooltip title="Sign Out">
-              <Button>
-                <IconButton
+                  POLICY
+                </Button>
+              </Tooltip>
+              <Tooltip title="Sign Out">
+                <Button
                   onClick={() => {
                     if (confirm("Are You Sure? You Want To SignOut !?")) {
                       hideSidebar && hideSidebar();
@@ -228,16 +230,20 @@ function SideBar({ hideSidebar }) {
                       navigate("/signin", { replace: true });
                     }
                   }}
-                  size="small"
+                  size="large"
+                  sx={{
+                    backgroundColor: "#22c55e",
+                    ":hover": { backgroundColor: "#16a34a" },
+                    transition: "all 0.15s ease-in-out",
+                  }}
+                  endIcon={<LogoutRoundedIcon />}
+                  className="font-mono font-semibold"
                 >
-                  <span className="text-lg font-mono font-semibold">
-                    SIGNOUT
-                  </span>
-                  <LogoutRoundedIcon />
-                </IconButton>
-              </Button>
-            </Tooltip>
-          </ButtonGroup>
+                  SIGNOUT
+                </Button>
+              </Tooltip>
+            </ButtonGroup>
+          </div>
         </div>
       </div>
 
