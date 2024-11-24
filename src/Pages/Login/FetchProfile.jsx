@@ -3,6 +3,7 @@ import { Context } from "../../ContextProvider";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Loader from "../../Widgets/Loader";
+import { PropTypes } from "prop-types"
 
 function FetchProfile({ children }) {
   const { Data, doSignIn } = useContext(Context);
@@ -51,5 +52,9 @@ function FetchProfile({ children }) {
 
   return <React.Fragment>{children}</React.Fragment>;
 }
+
+FetchProfile.propTypes = {
+  children: PropTypes.element,
+};
 
 export default FetchProfile;
