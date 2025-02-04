@@ -115,7 +115,7 @@ function PrivateVideo({ myvideo, videoRoomId }) {
 
   return (
     <section className="w-full h-full flex">
-      <div className="lg:w-3/4 w-full h-full flex flex-col">
+      <div className="lg:w-3/4 w-full h-full flex flex-col m-auto">
         <div className="w-full h-full relative flex justify-center">
           <video
             ref={(el) => {

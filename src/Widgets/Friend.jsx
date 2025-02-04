@@ -1,4 +1,4 @@
-import { Avatar } from "@mui/material";
+import { Avatar, Badge, styled } from "@mui/material";
 import PropTypes from "prop-types";
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -31,7 +31,36 @@ const alphabetColors = {
   z: "#2563EB",
 };
 
-function Friend({ name, id, last_message, username, hideSidebar }) {
+const StyledBadge = styled(Badge)(({ theme }) => ({
+  "& .MuiBadge-badge": {
+    backgroundColor: "#44b700",
+    color: "#44b700",
+    boxShadow: `0 0 0 2px ${theme.palette.background.paper}`,
+    "&::after": {
+      position: "absolute",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      borderRadius: "50%",
+      animation: "ripple 1.2s infinite ease-in-out",
+      border: "1px solid currentColor",
+      content: '""',
+    },
+  },
+  "@keyframes ripple": {
+    "0%": {
+      transform: "scale(.8)",
+      opacity: 1,
+    },
+    "100%": {
+      transform: "scale(2.4)",
+      opacity: 0,
+    },
+  },
+}));
+
+function Friend({ name, id, last_message, username, hideSidebar, is_online }) {
   const activeStyle =
     "border-l-4 border-emerald-600 bg-emerald-200 text-slate-600";
 
@@ -47,30 +76,41 @@ function Friend({ name, id, last_message, username, hideSidebar }) {
         }`}
         onClick={() => {
           if (!isActive) {
-            hideSidebar && hideSidebar()
+            hideSidebar && hideSidebar();
             navigate(`chat/${id}`);
           }
         }}
         aria-label={name}
         title={`Click to Chat with ${name}`}
       >
-        <Avatar
-          variant="circular"
-          sx={{ bgcolor: alphabetColors[name?.charAt(0).toLowerCase()] }}
-          className="uppercase"
+        <StyledBadge
+          overlap="circular"
+          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+          variant={is_online ? "dot" : ""}
         >
-          {name?.indexOf(" ") !== -1
-            ? name?.split(" ")[0].charAt(0) + name?.split(" ")[1].charAt(0)
-            : name?.split(" ")[0].charAt(0)}
-        </Avatar>
+          <Avatar
+            variant="circular"
+            sx={{ bgcolor: alphabetColors[name?.charAt(0).toLowerCase()] }}
+            className="uppercase"
+          >
+            {name?.indexOf(" ") !== -1
+              ? name?.split(" ")[0].charAt(0) + name?.split(" ")[1].charAt(0)
+              : name?.split(" ")[0].charAt(0)}
+          </Avatar>
+        </StyledBadge>
         <div
-          className={`capitalize text-lg font-sans font-bold ${
+          className={`capitalize overflow-hidden text-lg font-sans font-bold ${
             isActive && "shadow-red-400 drop-shadow-md"
           } flex flex-col flex-nowrap gap-0`}
         >
           {name?.slice(0, 19)}
-          <span className="text-xs lowercase font-normal overflow-hidden whitespace-nowrap">
-            {`${last_message || username || ""}`.slice(0, 28)}
+
+          <span
+            className={`${
+              username.length > 1 ? "marquee" : ""
+            } text-xs lowercase font-normal overflow-hidden whitespace-nowrap`}
+          >
+            {`${last_message || username.join(", ") || ""}`}
           </span>
         </div>
       </div>
@@ -85,8 +125,9 @@ Friend.propTypes = {
   name: PropTypes.string.isRequired,
   id: PropTypes.string.isRequired,
   last_message: PropTypes.string,
-  username: PropTypes.string,
-  hideSidebar: PropTypes.func
+  username: PropTypes.arrayOf(PropTypes.string),
+  hideSidebar: PropTypes.func,
+  is_online: PropTypes.bool,
 };
 
 export default Friend;

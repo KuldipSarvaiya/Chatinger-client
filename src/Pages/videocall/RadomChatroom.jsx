@@ -208,7 +208,7 @@ function RandomChatroom({ closeChatRoom, roomId, showChats }) {
         </span>
       </section>
       {msgAlert?.message && (
-        <MessageNotification msgAlert={msgAlert} setMsgAlert={setMsgAlert} />
+        <MessageNotification showAlert={msgAlert} setShowAlert={setMsgAlert} isExternallyTriggered={true} />
       )}
     </>
   );

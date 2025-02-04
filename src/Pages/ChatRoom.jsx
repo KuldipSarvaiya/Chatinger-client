@@ -23,9 +23,14 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import { Context } from "../ContextProvider";
 import axios from "axios";
 import UpdateIcon from "@mui/icons-material/Update";
-import { ArrowBackIos, MoreVert, Person, Visibility, VisibilityOff } from "@mui/icons-material";
+import {
+  ArrowBackIos,
+  MoreVert,
+  Person,
+  Visibility,
+  VisibilityOff,
+} from "@mui/icons-material";
 import { PropTypes } from "prop-types";
-import MessageNotification from "../Widgets/MessageNotification";
 import Loader from "../Widgets/Loader";
 
 function ChatRoom({ closeChatRoom }) {
@@ -34,7 +39,6 @@ function ChatRoom({ closeChatRoom }) {
   const navigate = useNavigate();
   const [msgList, setMsgList] = useState([]);
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [msgAlert, setMsgAlert] = useState(false);
   const [ghostMode, setGhostMode] = useState(false);
   const [invitableFriends, setInvitableFriends] = useState([]);
   const msg = useRef(null);
@@ -43,7 +47,7 @@ function ChatRoom({ closeChatRoom }) {
   const oldMessagesFetched = useRef(false);
   const pagination = useRef({ skip: 0, take: 10 });
   const loaderRef = useRef(null);
-  const { Data, removeChatRoom } = useContext(Context);
+  const { Data, removeChatRoom, setFriendOnlineStatus } = useContext(Context);
   const [chatMembers, setChatMembers] = useState([]);
   const [totalMessages, setTotalMessages] = useState(0);
   const chat = Data?.auth?.chatrooms?.filter(({ _id }) => _id === roomId)[0];
@@ -51,41 +55,58 @@ function ChatRoom({ closeChatRoom }) {
     chat?.display_name ||
     chatMembers?.filter(({ _id }) => _id !== Data?.auth?._id)?.[0]
       ?.display_name;
+  const onlineFriends = Data.auth.online_friends?.[roomId] ?? 0;
 
+  // current room verification
+  useEffect(() => {
+    const room =
+      Data?.auth?.chatrooms?.find(({ _id }) => _id === roomId)?.members || [];
+    if (room.length === 0) navigate("/", { replace: true });
+    setChatMembers(room);
+    return () => {
+      setChatMembers([]);
+    };
+  }, [roomId]);
+
+  // message handling
   useEffect(() => {
     if (msgList.length > 0) setMsgList([]);
 
     const messageListener = (message) => {
-      if (message.room !== roomId) return setMsgAlert(message);
-      setMsgList((prev) => [
-        ...prev,
-        {
-          _id: Date.now(),
-          isMyMessage: false,
-          message: message.message,
-          sent_by: message.display_name,
-        },
-      ]);
+      if (message.room === roomId)
+        setMsgList((prev) => [
+          ...prev,
+          {
+            _id: Date.now(),
+            isMyMessage: false,
+            message: message.message,
+            sent_by: message.display_name,
+          },
+        ]);
       scrollDown();
     };
 
-    const answerVideoCall = (data) => {
-      console.log(data);
-
-      setMsgAlert({
-        type: "video_call",
-        display_name: data.display_name,
-        roomId: data.roomId,
-        message: "video call started",
-      });
-      // navigate("/video/" + data.roomId);
+    const handleOnlineStatus = (data) => {
+      console.log("online status received - ", data);
+      if (data.room === roomId) {
+        // alert("online status received - " + JSON.stringify(data));
+        const count = Data.auth.online_friends?.[roomId] || 0;
+        // Data.socket.emit("pong", data);
+        setFriendOnlineStatus({
+          type: data.type,
+          chatroom_id: roomId,
+          count: count,
+        });
+      }
     };
-
+    
     if (Data.socket !== null) {
-      Data.socket.emit("join_room", { room: roomId });
       Data.socket.on("messageToClient", messageListener);
-      Data.socket.on("answer_video_call", answerVideoCall);
-
+      Data.socket.on("ping", handleOnlineStatus);
+      setTimeout(() => {
+        Data.socket.emit("pong", { room: roomId, type: "online" });
+      }, 3000)
+      
       Data.socket.emit("retriveMessages", {
         room: roomId,
         payload: {
@@ -95,14 +116,13 @@ function ChatRoom({ closeChatRoom }) {
         },
       });
     }
-
+    
     return () => {
       Data.socket.off("messageToClient", messageListener);
-      // Data.socket.off("answer_video_call", answerVideoCall);
-      // Data.socket.emit("leave_room", { room: roomId });
     };
   }, [Data.socket, roomId]);
 
+  // listing messages
   useEffect(() => {
     const listMessages = (data) => {
       console.log("messages received - ", data, pagination);
@@ -122,12 +142,12 @@ function ChatRoom({ closeChatRoom }) {
           };
         });
       if (!oldMessagesFetched.current || pagination.current.skip > 0) {
-        if(data.pagination.skip === pagination.current.skip){
+        if (data.pagination.skip === pagination.current.skip) {
           console.log("messages setting");
           setMsgList((prev) => [...convertedData, ...prev]);
           pagination.current.skip =
-          pagination.current.skip +
-          Math.min(pagination.current.take, convertedData.length);
+            pagination.current.skip +
+            Math.min(pagination.current.take, convertedData.length);
           scrollDown();
           oldMessagesFetched.current = true;
         }
@@ -154,29 +174,9 @@ function ChatRoom({ closeChatRoom }) {
       Data.socket.off("listMessages", listMessages);
       oldMessagesFetched.current = false;
       setMsgList([]);
-    };
-  }, [Data.socket, roomId]);
-
-  useEffect(() => {
-    if (chat && showGroupModal && invitableFriends.length < 1)
-      fetchInvitableFriends();
-
-    return () => {
       setInvitableFriends([]);
     };
-  }, [showGroupModal, chat]);
-
-  useEffect(() => {
-    const room =
-      Data?.auth?.chatrooms?.find(({ _id }) => _id === roomId)?.members || [];
-
-    if (room.length === 0) navigate("/", { replace: true });
-
-    setChatMembers(room);
-    return () => {
-      setChatMembers([]);
-    };
-  }, [roomId]);
+  }, [Data.socket, roomId]);
 
   // pagination observer
   useEffect(() => {
@@ -219,7 +219,7 @@ function ChatRoom({ closeChatRoom }) {
       message: msg.current.value,
       sent_by: Data.auth._id,
       display_name: Data.auth.display_name,
-      do_not_send_message : ghostMode ? 'yes' : 'no'
+      do_not_send_message: ghostMode ? "yes" : "no",
     });
 
     setMsgList((prev) => [
@@ -333,14 +333,25 @@ function ChatRoom({ closeChatRoom }) {
 
   return (
     <>
-      <section className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1">
+      <section
+        className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1"
+        style={{ boxShadow: ghostMode ? "#ef4444 0px 0px 20px 0px inset" : "" }}
+      >
         {/* friend's detail navbar */}
         {pathname.includes("chat") ? (
-          <div className="relative chat_nav p-2 rounded-lg w-full bg-red-500 flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit">
+          <div
+            className={`relative chat_nav p-2 rounded-lg w-full ${
+              ghostMode ? "bg-red-500" : "bg-blue-500"
+            } flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit`}
+          >
             <span className="hidden md:inline">
               <Avatar
                 variant="circular"
-                sx={{ bgcolor: "transparent", border: "2px dashed black" }}
+                sx={{
+                  bgcolor: "transparent",
+                  border:
+                    onlineFriends > 0 ? "3px solid white" : "2px dashed black",
+                }}
               >
                 {name?.indexOf(" ") !== -1
                   ? name?.split(" ")?.[0]?.charAt?.(0) +
@@ -353,6 +364,7 @@ function ChatRoom({ closeChatRoom }) {
               {name}
             </span>
 
+            {/* actions menu */}
             <Box
               sx={{
                 position: "absolute",
@@ -368,9 +380,20 @@ function ChatRoom({ closeChatRoom }) {
               >
                 <SpeedDialAction
                   icon={ghostMode ? <VisibilityOff /> : <Visibility />}
-                  tooltipTitle={<span>{ghostMode ? 'deactivate' : 'activate'}&nbsp;Ghost&nbsp;Mode</span>}
+                  tooltipTitle={
+                    <span>
+                      {ghostMode ? "deactivate" : "activate"}
+                      &nbsp;Ghost&nbsp;Mode
+                    </span>
+                  }
                   tooltipOpen
-                  onClick={() => setGhostMode(prev => !prev)}
+                  onClick={() => {
+                    if (onlineFriends < 1)
+                      return alert(
+                        "Ghost mode is not available when your friend is online"
+                      );
+                    setGhostMode((prev) => !prev);
+                  }}
                 />
                 <SpeedDialAction
                   icon={<VideoChatIcon />}
@@ -394,7 +417,12 @@ function ChatRoom({ closeChatRoom }) {
                       </span>
                     }
                     tooltipOpen
-                    onClick={() => setShowGroupModal(true)}
+                    onClick={() => {
+                      if (invitableFriends.length === 0) {
+                        fetchInvitableFriends();
+                      }
+                      setShowGroupModal(true);
+                    }}
                   />
                 )}
                 {chat?.type === "group" && chat?.admin !== Data.auth._id && (
@@ -460,18 +488,22 @@ function ChatRoom({ closeChatRoom }) {
             </span>
           )}
           {msgList.length === totalMessages && msgList.length > 0 && (
-            <div className="w-full grid h-12 p-2 py-2 place-content-center">✋ Chat is just started..</div> 
-          )}
-          {msgList.length < totalMessages && msgList.length > 0 && pagination.current.skip > 0 && (
-            <div
-              ref={loaderRef}
-              className="w-full grid h-12 p-2 py-2 place-content-center"
-            >
-              <span className="w-10 h-10">
-                <Loader />
-              </span>
+            <div className="w-full grid h-12 p-2 py-2 place-content-center">
+              ✋ Chat is just started..
             </div>
           )}
+          {msgList.length < totalMessages &&
+            msgList.length > 0 &&
+            pagination.current.skip > 0 && (
+              <div
+                ref={loaderRef}
+                className="w-full grid h-12 p-2 py-2 place-content-center"
+              >
+                <span className="w-10 h-10">
+                  <Loader />
+                </span>
+              </div>
+            )}
           {msgList.map((message) => {
             return (
               <Message
@@ -488,8 +520,10 @@ function ChatRoom({ closeChatRoom }) {
         {/* send message space */}
         <span className="flex flex-row gap-0 w-full justify-center items-center">
           <textarea
-            className="w-3/4 text-slate-700 max-md:w-11/12 rounded-s-md outline-none text-xl resize-none px-1 border-b-4 border-blue-500"
-            placeholder="Type Your Message..."
+            className={`w-2/3 text-slate-700 max-md:w-11/12 rounded-s-md outline-none text-xl resize-none px-1 border-b-4 ${
+              ghostMode ? "border-red-500" : "border-blue-500"
+            }`}
+            placeholder="Say hello..."
             ref={msg}
             onKeyDownCapture={(e) => {
               if (e.key === "Enter" && lastKeyPressed.current !== "Shift")
@@ -499,18 +533,17 @@ function ChatRoom({ closeChatRoom }) {
           />
           <button
             onClick={sendMessage}
-            className="bg-blue-500 text-xl font-mono p-3 px-4 rounded-e-md h-full uppercase disabled:bg-blue-800 disabled:shadow-none disabled:bg-transparent"
+            className={`${
+              ghostMode ? "bg-red-500" : "bg-blue-500"
+            } text-xl font-mono p-3 px-4 rounded-e-md h-full uppercase ${
+              ghostMode ? "disabled:border-red-800" : "disabled:border-blue-800"
+            } disabled:shadow-none disabled:bg-transparent`}
             disabled={msg === ""}
           >
             <SendRoundedIcon />
           </button>
         </span>
       </section>
-
-      {/* message notification */}
-      {msgAlert && (
-        <MessageNotification msgAlert={msgAlert} setMsgAlert={setMsgAlert} />
-      )}
 
       {/* group member managing dialog */}
       <Modal open={showGroupModal} onClose={() => setShowGroupModal(false)}>
@@ -602,12 +635,12 @@ function ChatRoom({ closeChatRoom }) {
                 <br />
 
                 {/* invite friends list */}
-                {invitableFriends.length > 0 && (
+                {invitableFriends?.length > 0 && (
                   <u>
                     <i>Invite Friends To Group</i>
                   </u>
                 )}
-                {invitableFriends.map((item) => (
+                {invitableFriends?.map((item) => (
                   <span
                     key={item._id}
                     className="border-l-[5px] rounded-l-lg border-gray-900/50 flex flex-row justify-between gap-3 items-center px-2 m-1 "

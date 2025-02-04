@@ -132,7 +132,6 @@ function RandomVideoCall({ myvideo }) {
   };
 
   const endCall = () => {
-    alert("Call ended");
     setIsInCall(false);
     setFriendsVideo(null);
     Data.socket.emit("callEnded");
@@ -144,7 +143,7 @@ function RandomVideoCall({ myvideo }) {
     });
 
     if (peer) {
-      peer.disconnect();
+      // peer.disconnect();
       // peer.destroy();
       // setPeer(null);
     }
@@ -320,7 +319,7 @@ function RandomVideoCall({ myvideo }) {
         </div>
       </section>
       {msgAlert?.message && (
-        <MessageNotification msgAlert={msgAlert} setMsgAlert={setMsgAlert} />
+        <MessageNotification showAlert={msgAlert} setShowAlert={setMsgAlert} isExternallyTriggered={true} />
       )}
     </>
   );

@@ -194,10 +194,10 @@ function SideBar({ hideSidebar }) {
                         .display_name
                     }
                     username={
-                      chat.members.filter((mem) => mem._id !== Data.auth._id)[0]
-                        ?.username
+                      chat.members.filter((mem) => mem._id !== Data.auth._id)?.map(u => u.username)
                     }
                     last_message=""
+                    is_online={(Data.auth.online_friends?.[chat._id] ?? 0) > 0}
                   />
                 )
             )}

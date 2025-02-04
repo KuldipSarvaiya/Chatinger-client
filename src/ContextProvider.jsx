@@ -15,6 +15,7 @@ function ContextProvider({ children }) {
       jwt: "",
       received_friend_requests: [],
       chatrooms: [],
+      online_friends: {},
     },
     socket: null,
     opened_chatrooms: new Map(),
@@ -29,7 +30,7 @@ function ContextProvider({ children }) {
         return {
           ...prevState,
           isLoggedIn: true,
-          auth: props.auth,
+          auth: { ...prevState.auth, ...props.auth},
         };
       case "signout":
         console.log("signout function has called");
@@ -82,6 +83,17 @@ function ContextProvider({ children }) {
           ),
           open_chatroom: new Map().set(props.room.id, props.room.IO),
         };
+      case "online_friends":
+        return {
+          ...prevState,
+          auth: {
+            ...prevState.auth,
+            online_friends: {
+              ...prevState.auth?.online_friends,
+              [props.chatroom_id]: props.count,
+            },
+          },
+        };
       case "exit":
         return initialState;
       default:
@@ -93,8 +105,6 @@ function ContextProvider({ children }) {
   const [Data, Dispatch] = useReducer(updateData, initialState);
 
   console.log("Data store reloaded = ", Data);
-
-  // ? creating small function so changing state of application can make easy by convinent naming
 
   // will be used when signing in and complete creating new account
   const doSignIn = (auth) => {
@@ -118,8 +128,7 @@ function ContextProvider({ children }) {
       "\n\n*********im going to reset all state hoooo stop me if you can\n\n"
     );
     // setting default auth for every request
-    axios.defaults.headers.common.Authorization =
-      import.meta.env.VITE_APP_AUTH_HEADER_TYPE + " default_header";
+    axios.defaults.headers.common.Authorization = "default_header";
     window.localStorage.clear();
 
     Dispatch({ type: "signout" });
@@ -136,6 +145,14 @@ function ContextProvider({ children }) {
   };
   const openChatRoom = (room) => {
     Dispatch({ type: "openchatroom", room });
+  };
+  const setFriendOnlineStatus = ({ type, chatroom_id, count }) => {
+    if (type === "online") {
+      count += 1;
+    } else {
+      count -= 1;
+    }
+    Dispatch({ type: "online_friends", chatroom_id, count });
   };
   // setting socket variable for global access
   const setSocket = (socket) => {
@@ -157,6 +174,7 @@ function ContextProvider({ children }) {
         removeChatRoom,
         removeFriendRequest,
         openChatRoom,
+        setFriendOnlineStatus,
         setSocket,
         setInitialState,
       }}

@@ -8,10 +8,11 @@ import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { Context } from "./ContextProvider";
-import sendNotification from "./Widgets/sendNotification";
+import sendNotification from "./utils/sendNotification.js";
 import FetchProfile from "./Pages/Login/FetchProfile";
 import LoadingChats from "./Widgets/LoadingChats";
 import VideoChat from "./Pages/videocall/VideoChat";
+import MessageNotification from "./Widgets/MessageNotification.jsx";
 
 function App() {
   const { Data, setSocket, setInitialState } = useContext(Context);
@@ -35,10 +36,11 @@ function App() {
 
     socket.current.on("disconnect", () => {
       console.log("Disconnected from the socket server!");
-      sendNotification("Chatinger", "Please Come Back sooner");
+      setSocket(null);
     });
-
+    
     return () => {
+      sendNotification("Chatinger", "Please Come Back sooner");
       console.log("clearing side effect from App.jsx");
       socket.current.close();
       setInitialState();
@@ -47,6 +49,7 @@ function App() {
 
   return (
     <>
+      <MessageNotification />
       <Routes>
         <Route
           path="/"
