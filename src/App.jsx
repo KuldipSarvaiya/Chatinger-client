@@ -12,7 +12,8 @@ import sendNotification from "./utils/sendNotification.js";
 import FetchProfile from "./Pages/Login/FetchProfile";
 import LoadingChats from "./Widgets/LoadingChats";
 import VideoChat from "./Pages/videocall/VideoChat";
-import MessageNotification from "./Widgets/MessageNotification.jsx";
+import { Flip, ToastContainer } from "react-toastify";
+import { QuestionAnswerRounded } from "@mui/icons-material";
 
 function App() {
   const { Data, setSocket, setInitialState } = useContext(Context);
@@ -20,9 +21,12 @@ function App() {
 
   useLayoutEffect(() => {
     axios.defaults.baseURL = import.meta.env.VITE_APP_BASE_URL;
-    const token = window.localStorage.getItem(import.meta.env.VITE_APP_STORAGE_NAME);
+    const token = window.localStorage.getItem(
+      import.meta.env.VITE_APP_STORAGE_NAME
+    );
     if (token) {
-      axios.defaults.headers.common.Authorization = import.meta.env.VITE_APP_AUTH_HEADER_TYPE + " " + token;
+      axios.defaults.headers.common.Authorization =
+        import.meta.env.VITE_APP_AUTH_HEADER_TYPE + " " + token;
     }
   }, []);
 
@@ -38,7 +42,7 @@ function App() {
       console.log("Disconnected from the socket server!");
       setSocket(null);
     });
-    
+
     return () => {
       sendNotification("Chatinger", "Please Come Back sooner");
       console.log("clearing side effect from App.jsx");
@@ -49,7 +53,19 @@ function App() {
 
   return (
     <>
-      <MessageNotification />
+      <ToastContainer
+        theme="colored"
+        transition={Flip}
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        icon={<QuestionAnswerRounded />}
+      />
       <Routes>
         <Route
           path="/"

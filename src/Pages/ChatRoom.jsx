@@ -27,11 +27,13 @@ import {
   ArrowBackIos,
   MoreVert,
   Person,
+  QuestionAnswerRounded,
   Visibility,
   VisibilityOff,
 } from "@mui/icons-material";
 import { PropTypes } from "prop-types";
 import Loader from "../Widgets/Loader";
+import { toast } from "react-toastify";
 
 function ChatRoom({ closeChatRoom }) {
   const { roomId } = useParams();
@@ -99,14 +101,14 @@ function ChatRoom({ closeChatRoom }) {
         });
       }
     };
-    
+
     if (Data.socket !== null) {
       Data.socket.on("messageToClient", messageListener);
       Data.socket.on("ping", handleOnlineStatus);
       setTimeout(() => {
         Data.socket.emit("pong", { room: roomId, type: "online" });
-      }, 3000)
-      
+      }, 3000);
+
       Data.socket.emit("retriveMessages", {
         room: roomId,
         payload: {
@@ -116,7 +118,7 @@ function ChatRoom({ closeChatRoom }) {
         },
       });
     }
-    
+
     return () => {
       Data.socket.off("messageToClient", messageListener);
     };
@@ -128,6 +130,7 @@ function ChatRoom({ closeChatRoom }) {
       console.log("messages received - ", data, pagination);
       if (totalMessages !== data.totalMessages)
         setTotalMessages(data.totalMessages);
+      console.log("messages setting");
 
       const current_messages_id = msgList?.map(({ _id }) => _id) || [[]];
       const convertedData = data.messages
@@ -143,7 +146,6 @@ function ChatRoom({ closeChatRoom }) {
         });
       if (!oldMessagesFetched.current || pagination.current.skip > 0) {
         if (data.pagination.skip === pagination.current.skip) {
-          console.log("messages setting");
           setMsgList((prev) => [...convertedData, ...prev]);
           pagination.current.skip =
             pagination.current.skip +
@@ -331,26 +333,31 @@ function ChatRoom({ closeChatRoom }) {
     });
   }
 
+  const autoResize = (e) => {
+    const textarea = e.target;
+    textarea.style.height = "auto";
+    textarea.style.height = textarea.scrollHeight + "px";
+  };
+
   return (
     <>
       <section
-        className="h-full p-2 max-sm:p-1 w-full flex flex-col relative gap-1"
+        className="h-full p-1 max-sm:p-1 w-full flex flex-col relative gap-1"
         style={{ boxShadow: ghostMode ? "#ef4444 0px 0px 20px 0px inset" : "" }}
       >
         {/* friend's detail navbar */}
         {pathname.includes("chat") ? (
           <div
-            className={`relative chat_nav p-2 rounded-lg w-full ${
-              ghostMode ? "bg-red-500" : "bg-blue-500"
-            } flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit`}
+          className={`relative chat_nav p-2 rounded-md w-full ${
+            ghostMode ? "bg-red-500" : "bg-blue-500"
+          } flex items-center h-12 text-2xl font-medium max-sm:text-lg gap-0 uppercase flex-row flex-nowrap min-h-fit`}
           >
             <span className="hidden md:inline">
               <Avatar
                 variant="circular"
                 sx={{
-                  bgcolor: "transparent",
-                  border:
-                    onlineFriends > 0 ? "3px solid white" : "2px dashed black",
+                  bgcolor: onlineFriends < 1 ? "transparent" : "#22c55e",
+                  border: "2px dashed black",
                 }}
               >
                 {name?.indexOf(" ") !== -1
@@ -360,6 +367,7 @@ function ChatRoom({ closeChatRoom }) {
               </Avatar>
             </span>
 
+            <span className={`md:hidden h-3 w-3 rounded-full ${onlineFriends > 0 ? "bg-[#22c55e]" : "bg-red-500"}`}></span>
             <span className="grow ml-1 -md:text-lg -lg:text-lg whitespace-nowrap">
               {name}
             </span>
@@ -389,8 +397,9 @@ function ChatRoom({ closeChatRoom }) {
                   tooltipOpen
                   onClick={() => {
                     if (onlineFriends < 1)
-                      return alert(
-                        "Ghost mode is not available when your friend is online"
+                      return toast.dark(
+                        "Ghost mode can be enabled when friend is Online",
+                        { type: "error" }
                       );
                     setGhostMode((prev) => !prev);
                   }}
@@ -399,7 +408,11 @@ function ChatRoom({ closeChatRoom }) {
                   icon={<VideoChatIcon />}
                   tooltipTitle={<span>video&nbsp;call</span>}
                   tooltipOpen
-                  onClick={() => navigate(`/video/${roomId}`)}
+                  onClick={() => {
+                    // if (onlineFriends < 1)
+                    //   return toast.dark(`${name} is offline`);
+                    navigate(`/video/${roomId}`);
+                  }}
                 />
                 {chat?.type === "group" && (
                   <SpeedDialAction
@@ -519,12 +532,22 @@ function ChatRoom({ closeChatRoom }) {
 
         {/* send message space */}
         <span className="flex flex-row gap-0 w-full justify-center items-center">
-          <textarea
-            className={`w-2/3 text-slate-700 max-md:w-11/12 rounded-s-md outline-none text-xl resize-none px-1 border-b-4 ${
+          <span
+            className={`flex flex-row gap-2 justify-center items-center border-b-4 ${
               ghostMode ? "border-red-500" : "border-blue-500"
-            }`}
-            placeholder="Say hello..."
+            } rounded-s-full bg-white h-full px-2`}
+          >
+            <span className="text-xl">
+              <QuestionAnswerRounded color="action" />
+            </span>
+          </span>
+          <textarea
+            className={`caret-underscore w-2/3 text-slate-700 max-md:w-11/12 outline-none font-semibold resize-none px-1 border-b-4 ${
+              ghostMode ? "border-red-500" : "border-blue-500"
+            } h-auto min-h-[55px] max-h-[100px] overflow-y-auto`}
+            placeholder=""
             ref={msg}
+            onInput={autoResize}
             onKeyDownCapture={(e) => {
               if (e.key === "Enter" && lastKeyPressed.current !== "Shift")
                 sendMessage();
@@ -535,7 +558,7 @@ function ChatRoom({ closeChatRoom }) {
             onClick={sendMessage}
             className={`${
               ghostMode ? "bg-red-500" : "bg-blue-500"
-            } text-xl font-mono p-3 px-4 rounded-e-md h-full uppercase ${
+            } text-xl font-mono p-3 px-4 rounded-e-full h-full uppercase ${
               ghostMode ? "disabled:border-red-800" : "disabled:border-blue-800"
             } disabled:shadow-none disabled:bg-transparent`}
             disabled={msg === ""}

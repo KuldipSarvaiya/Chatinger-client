@@ -7,6 +7,7 @@ import {
   CropSquare,
   RectangleOutlined,
   Videocam,
+  VideoChat,
 } from "@mui/icons-material";
 import {
   IconButton,
@@ -20,7 +21,7 @@ import { useNavigate } from "react-router-dom";
 import Loader from "../../Widgets/Loader";
 import PropTypes from "prop-types";
 import RandomChatroom from "./RadomChatroom";
-import MessageNotification from "../../Widgets/MessageNotification";
+import { toast } from "react-toastify";
 
 function RandomVideoCall({ myvideo }) {
   const { Data } = useContext(Context);
@@ -33,7 +34,6 @@ function RandomVideoCall({ myvideo }) {
   const theme = useTheme();
   const isBigScreen = useMediaQuery(theme.breakpoints.up("lg"));
   const [showChats, setShowChats] = useState(isBigScreen);
-  const [msgAlert, setMsgAlert] = useState(false);
   const navigate = useNavigate();
   const roomIdRef = useRef(null);
 
@@ -113,7 +113,7 @@ function RandomVideoCall({ myvideo }) {
       Data.socket.emit("disconnect_rvc");
     };
 
-    newPeer.on('error',() => navigate('/random-video-call'))
+    newPeer.on("error", () => navigate("/random-video-call"));
 
     // window.addEventListener("beforeunload", clearSideEffecs);
 
@@ -136,11 +136,7 @@ function RandomVideoCall({ myvideo }) {
     setFriendsVideo(null);
     Data.socket.emit("callEnded");
     Data.socket.emit("leave_room", { room: roomIdRef.current });
-    setMsgAlert({
-      type: "video_call_ended",
-      message: "Video call ended",
-      display_name: "",
-    });
+    toast.dark("Video call ended", { icon: <VideoChat /> });
 
     if (peer) {
       // peer.disconnect();
@@ -318,9 +314,6 @@ function RandomVideoCall({ myvideo }) {
           </div>
         </div>
       </section>
-      {msgAlert?.message && (
-        <MessageNotification showAlert={msgAlert} setShowAlert={setMsgAlert} isExternallyTriggered={true} />
-      )}
     </>
   );
 }

@@ -87,7 +87,7 @@ function VideoChat() {
             boxShadow: "inset 0px 0px 10px 3px black, 3px 3px 20px 0px white",
             backgroundColor: "#22c55e",
           }}
-          className="p-6 rounded-lg shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-lg"
+          className="p-6 min-w-80 rounded-lg shadow-lg absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 max-w-lg"
         >
           <h2 className="text-2xl font-bold mb-4">⚠️Permission Required</h2>
           <p className="mb-4">

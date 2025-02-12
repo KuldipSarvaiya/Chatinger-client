@@ -6,7 +6,7 @@ import axios from "axios";
 import { ArrowBackIos, PersonAdd } from "@mui/icons-material";
 import { PropTypes } from "prop-types";
 import { Context } from "../../ContextProvider";
-import MessageNotification from "../../Widgets/MessageNotification";
+import { toast } from "react-toastify";
 
 function RandomChatroom({ closeChatRoom, roomId, showChats }) {
   const [msgList, setMsgList] = useState([]);
@@ -15,7 +15,6 @@ function RandomChatroom({ closeChatRoom, roomId, showChats }) {
   const lastKeyPressed = useRef(null);
   const messagesRef = useRef(null);
   const { Data } = useContext(Context);
-  const [msgAlert, setMsgAlert] = useState(false);
 
   useEffect(() => {
     if (msgList.length > 0) setMsgList([]);
@@ -54,14 +53,16 @@ function RandomChatroom({ closeChatRoom, roomId, showChats }) {
     ]);
     scrollDown();
 
-    console.log(showChats);
-    
+    console.log("show chat", showChats);
+
     if (showChats === false) {
-      setMsgAlert({
-        type: "chat",
-        message: message.message,
-        display_name: message.display_name,
-      });
+      toast.dark(
+        <div className={"grid grid-cols-1 gap-0"}>
+          <span className="uppercase">{message.display_name}</span>
+          {message?.message?.substr(0, 40)}
+          {message?.message?.length > 40 ? "..." : ""}
+        </div>
+      );
     }
   };
 
@@ -207,9 +208,6 @@ function RandomChatroom({ closeChatRoom, roomId, showChats }) {
           </button>
         </span>
       </section>
-      {msgAlert?.message && (
-        <MessageNotification showAlert={msgAlert} setShowAlert={setMsgAlert} isExternallyTriggered={true} />
-      )}
     </>
   );
 }
